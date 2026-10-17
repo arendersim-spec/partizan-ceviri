@@ -298,9 +298,8 @@ function ciz(gorunum) {
     if (k.c) h += `<p style="font-family:inherit;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <button class="btn ghost" data-duzelt="${k.c.id}">Bu çeviriyi düzelt</button>
       <button class="btn ghost" data-gozden="${k.c.id}">İkinci okuma (Sonnet)</button>
-      ${(k.c.hedef || 'tr') === 'tr'
-        ? `<button class="btn red" data-yayin="${k.c.id}">${k.c.durum === 'yayinda' ? 'Yeniden yayınla' : 'Yayınla'}</button>`
-        : `<button class="btn" data-kopya="${k.c.id}">Metni kopyala</button>`}
+      <button class="btn red" data-yayin="${k.c.id}">${k.c.durum === 'yayinda' ? 'Yeniden yayınla' : 'Yayınla'}${(k.c.hedef || 'tr') === 'tr' ? '' : ' (' + (HEDEF_AD[k.c.hedef] || k.c.hedef) + ')'}</button>
+      ${(k.c.hedef || 'tr') === 'tr' ? '' : `<button class="btn" data-kopya="${k.c.id}">Metni kopyala</button>`}
       <span class="note" data-gdurum="${k.c.id}"></span></p>
       <div class="yay hide" data-ypanel="${k.c.id}"></div>`;
     col.innerHTML = h; g.appendChild(col);
@@ -347,7 +346,9 @@ function ciz(gorunum) {
     const SIRA = ['KURAM','EMEK','KADIN','KÜLTÜR – SANAT','EKONOMİ','EKOLOJİ','BİLİM – TEKNOLOJİ','DÜNYA','AVRUPA','KÜRDİSTAN – TÜRKİYE'];
     const kats = (kc.data || []).filter(k => SIRA.includes(k.name)).sort((a, b) => SIRA.indexOf(a.name) - SIRA.indexOf(b.name));
     panel.innerHTML = `<b>Uygulamada yayınla</b>
-      ${c.article_id ? '<div class="note" style="margin:4px 0">Bu çeviri, uygulamadaki aynı yazının kısa özetinin yerine geçecek.</div>' : ''}
+      ${(c.hedef || 'tr') !== 'tr'
+        ? '<div class="note" style="margin:4px 0">Bu çeviri, uygulamada dili ' + (c.hedef === 'de' ? 'Deutsch' : 'English') + ' seçen okurlara ayrı bir yazı olarak yayınlanır. Türkçe yazı değişmez.</div>'
+        : (c.article_id ? '<div class="note" style="margin:4px 0">Bu çeviri, uygulamadaki aynı yazının kısa özetinin yerine geçecek.</div>' : '')}
       <label>Başlık</label><input type="text" data-yb value="${esc(c.baslik_tr || '')}">
       <label>Bölüm</label><select data-yk>${kats.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
       <label>Yazar (isteğe bağlı; seçilirse yazı Yazarlar bölümüne girer)</label>
@@ -359,6 +360,15 @@ function ciz(gorunum) {
       <img data-yo style="display:none;max-width:220px;margin:6px 0;border-radius:6px">
       <p style="margin:12px 0 0"><button class="btn red" data-ygonder>Yayınla</button> <span class="note" data-ydurum></span></p>`;
     panel.classList.remove('hide');
+    /* Almanca/İngilizce çeviride bölüm ve yazar, Türkçe yazıdan gelsin */
+    if ((c.hedef || 'tr') !== 'tr' && c.article_id) {
+      sb.from('articles').select('primary_category_id, yazar_id').eq('id', c.article_id).maybeSingle().then(({ data: o }) => {
+        if (!o) return;
+        const ks = panel.querySelector('[data-yk]'), ys = panel.querySelector('[data-yy]');
+        if (o.primary_category_id && [...ks.options].some(x => x.value === String(o.primary_category_id))) ks.value = String(o.primary_category_id);
+        if (o.yazar_id && [...ys.options].some(x => x.value === String(o.yazar_id))) ys.value = String(o.yazar_id);
+      });
+    }
     let dosyaGorsel = '';
     const yg = panel.querySelector('[data-yg]'), yd = panel.querySelector('[data-yd]'), yo = panel.querySelector('[data-yo]');
     yg.oninput = () => { dosyaGorsel = ''; yd.value = ''; const v = yg.value.trim(); yo.style.display = v ? 'block' : 'none'; if (v) yo.src = v; };
@@ -381,7 +391,7 @@ function ciz(gorunum) {
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));
-        c.durum = 'yayinda'; c.article_id = j.article_id; c.baslik_tr = panel.querySelector('[data-yb]').value.trim();
+        c.durum = 'yayinda'; if ((c.hedef || 'tr') === 'tr') c.article_id = j.article_id; c.baslik_tr = panel.querySelector('[data-yb]').value.trim();
         toast(j.gorsel_hata ? 'Yayınlandı, ama fotoğraf eklenemedi: ' + j.gorsel_hata : 'Yayınlandı. Uygulamada görünüyor.', !!j.gorsel_hata);
         ciz(String(id));
       } catch (e) {
