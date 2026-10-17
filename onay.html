@@ -1,0 +1,767 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partizan Sesi – Onay</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--cream:#F4EFE5;--red:#B5121B;--black:#151515;--line:#ddd5c6;--mute:#777;--card:#fff}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--black);font:16px/1.4 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+header{background:var(--black);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header b{letter-spacing:1px;font-size:15px}
+header button{background:none;border:1px solid #666;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px}
+main{max-width:760px;margin:0 auto;padding:16px}
+.hide{display:none!important}
+.box{background:var(--card);border-radius:14px;padding:18px;margin-bottom:14px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 4px}
+textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font:16px/1.5 inherit;font-family:inherit;background:#fff;color:var(--black);resize:vertical}
+input[type=text],input[type=email],input[type=password],select{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:#fff;color:var(--black)}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;background:var(--black);color:#fff}
+.btn.red{background:var(--red)}
+.btn.ghost{background:#fff;color:var(--black);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.tabs button{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-weight:700;font-size:14px;color:var(--black)}
+.tabs button.on{background:var(--red);border-color:var(--red);color:#fff}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar select,.bar input{flex:1 1 150px;width:auto}
+.item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;gap:10px}
+.item input[type=checkbox]{width:22px;height:22px;margin-top:2px;flex:0 0 auto;accent-color:var(--red)}
+.item .body{flex:1;min-width:0}
+.item h3{margin:0 0 4px;font-size:16px;line-height:1.3}
+.meta{font-size:12px;color:var(--mute);font-weight:700;margin-bottom:6px}
+.ex{font-size:14px;color:#555;margin:0 0 10px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.acts select{flex:1 1 160px;width:auto;padding:9px;font-size:14px}
+.src{display:flex;justify-content:space-between;align-items:center;background:#fff;border-radius:12px;padding:14px;margin-bottom:8px;gap:12px}
+.src small{display:block;color:var(--mute)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#aaa}
+.dot.ok{background:#2e9e4f}.dot.warn{background:#e0a020}.dot.bad{background:var(--red)}
+
+.lib-row{touch-action:pan-y}
+.lib-row.drag{opacity:.55;outline:2px dashed var(--red)}
+.grip{flex:0 0 auto;width:40px;display:flex;flex-direction:column;align-items:center;gap:6px;user-select:none;-webkit-user-select:none}
+.grip .hand{font-size:24px;line-height:1;color:var(--mute);cursor:grab;touch-action:none;padding:6px 8px}
+.grip button{border:1px solid var(--line);background:#fff;border-radius:6px;width:32px;height:28px;font-size:13px;color:var(--black);padding:0}
+.health{background:#fff;border-left:4px solid var(--red);border-radius:8px;padding:12px 14px;margin-bottom:12px;font-size:14px}
+.src input{width:24px;height:24px;accent-color:var(--red)}
+.note{font-size:13px;color:var(--mute)}
+.item h3{cursor:pointer}
+.full{font-size:14px;color:#333;white-space:pre-wrap;margin:0 0 10px;border-left:3px solid var(--red);padding-left:10px}
+.full a{color:var(--red);font-weight:700}
+.more{display:block;width:100%;margin:6px 0 30px}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--black);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;max-width:90%;z-index:9}
+#toast.err{background:var(--red)}
+</style>
+</head>
+<body>
+<header><b>PARTİZAN SESİ · ONAY</b><button id="logout" class="hide">Çıkış</button></header>
+<main>
+
+<section id="setup" class="box hide">
+  <h2>İlk kurulum</h2>
+  <p class="note">Bu iki bilgi bir kez girilir ve bu cihazda saklanır.</p>
+  <label>Proje adresi (https://....supabase.co)</label>
+  <input type="text" id="cfgUrl" autocapitalize="off" autocorrect="off">
+  <label>Anahtar (eyJ... ya da sb_publishable_... ile başlar)</label>
+  <input type="text" id="cfgKey" autocapitalize="off" autocorrect="off">
+  <p><button class="btn red" id="cfgSave">Kaydet</button></p>
+</section>
+
+<section id="login" class="box hide">
+  <h2>Giriş</h2>
+  <label>E-posta</label><input type="email" id="email" autocapitalize="off">
+  <label>Şifre</label><input type="password" id="pass">
+  <p><button class="btn red" id="doLogin">Giriş yap</button>
+  <button class="btn ghost" id="resetCfg">Kurulumu sıfırla</button></p>
+</section>
+
+<section id="app" class="hide">
+  <div class="tabs">
+    <button data-m="review" class="on">Bekleyen <span id="cnt"></span></button>
+    <button data-m="published">Yayında</button>
+    <button data-m="archived">Kaldırılan</button>
+    <button data-m="sources">Kaynaklar</button>
+    <button data-m="write">✎ Yazı ekle</button>
+    <button data-m="library">▤ Kütüphane</button>
+    <button data-m="authors">☺ Yazarlar</button>
+  </div>
+  <div id="listView">
+    <div class="bar">
+      <select id="fSrc"><option value="">Tüm kaynaklar</option></select>
+      <select id="fCat"><option value="">Tüm kategoriler</option></select>
+      <input type="text" id="fText" placeholder="Başlıkta ara">
+      <button class="btn ghost" id="reload">Yenile</button>
+    </div>
+    <div class="bar">
+      <button class="btn ghost" id="selAll">Tümünü seç</button>
+      <button class="btn" id="bulkA"></button>
+      <button class="btn red" id="bulkB"></button>
+      <span class="note" id="selInfo"></span>
+    </div>
+    <div id="list"></div>
+    <button class="btn ghost more hide" id="more">Daha fazla yükle</button>
+  </div>
+  <div id="srcView" class="hide">
+    <p class="note">İşaretli kaynakların haberleri doğrudan yayınlanır. İşaretsiz kaynakların haberleri onayını bekler.</p>
+    <p class="note"><span class="dot ok"></span>son 2 günde haber var &nbsp; <span class="dot warn"></span>2–7 gündür yok &nbsp; <span class="dot bad"></span>7 günden uzun süredir yok</p>
+    <div id="srcHealth"></div>
+    <div id="srcList"></div>
+  </div>
+  <div id="autView" class="hide">
+    <p class="note">Uygulamadaki Yazarlar sayfasının sırası. Soldaki ☰ işaretinden tutup sürükleyin ya da okları kullanın. Fotoğrafı ve tanıtım yazısını da buradan değiştirebilirsiniz.</p>
+    <div id="autList"></div>
+  </div>
+  <div id="libView" class="hide">
+    <div class="box">
+      <h2 style="margin-top:0">Kütüphaneye ekle</h2>
+      <p class="note">Buradan yüklenen PDF'ler uygulamanın Kütüphane bölümünde bütün okurlara görünür. Yalnızca dağıtma hakkınız olan belgeleri yükleyin.</p>
+      <label>Başlık</label>
+      <input type="text" id="lTitle">
+      <label>Yazar / yayıncı (isteğe bağlı)</label>
+      <input type="text" id="lAuthor">
+      <label>Tür</label>
+      <select id="lKind"><option>Kitap</option><option>Broşür</option><option>Dergi</option><option>Belge</option></select>
+      <label>Kısa açıklama (isteğe bağlı)</label>
+      <textarea id="lDesc" rows="2"></textarea>
+      <label>PDF dosyası (en çok 50 MB)</label>
+      <input type="file" id="lPdf" accept="application/pdf,.pdf">
+      <label>Kapak görseli (isteğe bağlı)</label>
+      <input type="file" id="lCover" accept="image/*">
+      <p><button class="btn red" id="lSend">Kütüphaneye ekle</button> <span class="note" id="lInfo"></span></p>
+    </div>
+    <p class="note" id="lCount"></p>
+    <div id="libList"></div>
+  </div>
+  <div id="writeView" class="box hide">
+    <h2 style="margin-top:0">Yazı ekle</h2>
+    <p class="note">Kendi yazınızı ya da seçtiğiniz bir yazarın yazısını ekleyin. Yazı, uygulamanın Yazarlar bölümünde o yazarın adıyla hemen yayımlanır.</p>
+    <label>Yazar (listeden seçin ya da yeni bir ad yazın)</label>
+    <input type="text" id="wAuthor" list="wAuthors" placeholder="Ad Soyad" autocomplete="off">
+    <datalist id="wAuthors"></datalist>
+    <label>Yazar fotoğrafı (isteğe bağlı; yeni yazar eklerken ya da fotoğrafı değiştirmek için)</label>
+    <input type="file" id="wPhoto" accept="image/*">
+    <label>Başlık</label>
+    <input type="text" id="wTitle">
+    <label>Kısa özet (isteğe bağlı, 1-2 cümle)</label>
+    <textarea id="wExcerpt" rows="2"></textarea>
+    <label>Metin</label>
+    <textarea id="wBody" rows="16" placeholder="Yazınızı buraya yazın ya da yapıştırın. Paragraflar arasında bir boş satır bırakın."></textarea>
+    <label>Yazının görseli (isteğe bağlı)</label>
+    <input type="file" id="wImg" accept="image/*">
+    <label>Yazının tarihi (boş bırakılırsa bugün)</label>
+    <input type="date" id="wDate" style="width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:#fff">
+    <label>İlk yayımlandığı yerin bağlantısı (isteğe bağlı)</label>
+    <input type="text" id="wUrl" placeholder="https://..." autocapitalize="off" autocorrect="off">
+    <p><button class="btn red" id="wSend">Yayımla</button> <span class="note" id="wInfo"></span></p>
+  </div>
+</section>
+</main>
+<div id="toast" class="hide"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const LABEL = {
+  review:    {a:'Seçilenleri onayla', b:'Seçilenleri reddet', a1:'Onayla', b1:'Reddet', as:'published', bs:'archived'},
+  published: {a:'', b:'Seçilenleri kaldır', a1:'', b1:'Kaldır', as:'', bs:'archived'},
+  archived:  {a:'Seçilenleri yayına al', b:'', a1:'Yayına al', b1:'', as:'published', bs:''}
+};
+let sb = null, cats = [], srcs = [], srcName = {}, mode = 'review', rows = [], sel = new Set(), tmr = null, page = 0;
+const PAGE = 100;
+/* Uygulamada kullanılan bölümler, menüdeki sırayla. Diğerleri listelenmez. */
+const CAT_ORDER = ['KÜRDİSTAN – TÜRKİYE','EMEK','KADIN','EKOLOJİ','EKONOMİ','BİLİM – TEKNOLOJİ','AVRUPA','DÜNYA','KÜLTÜR – SANAT','KURAM','YAZARLAR'];
+let allCats = [];
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : '';
+  clearTimeout(tmr); tmr = setTimeout(() => t.className = 'hide', err ? 6000 : 2500);
+}
+function show(id) { ['setup','login','app'].forEach(s => $(s).classList.toggle('hide', s !== id)); $('logout').classList.toggle('hide', id !== 'app'); }
+function getCfg() { try { return JSON.parse(localStorage.getItem('ps_cfg') || 'null'); } catch (e) { return null; } }
+
+async function start() {
+  const cfg = getCfg();
+  if (!cfg) return show('setup');
+  try { sb = supabase.createClient(cfg.url, cfg.key); } catch (e) { toast('Kurulum bilgisi hatalı', true); return show('setup'); }
+  const { data } = await sb.auth.getSession();
+  if (!data || !data.session) return show('login');
+  show('app'); await loadBase(); await load();
+}
+
+$('cfgSave').onclick = () => {
+  const url = $('cfgUrl').value.trim().replace(/\/+$/, ''), key = $('cfgKey').value.trim();
+  if (!/^https:\/\/.+\.supabase\.co$/.test(url) || key.length < 20) return toast('Adres ya da anahtar eksik görünüyor', true);
+  try { localStorage.setItem('ps_cfg', JSON.stringify({ url, key })); } catch (e) {}
+  start();
+};
+$('resetCfg').onclick = () => { try { localStorage.removeItem('ps_cfg'); } catch (e) {} show('setup'); };
+$('doLogin').onclick = async () => {
+  $('doLogin').disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
+  $('doLogin').disabled = false;
+  if (error) return toast('Giriş olmadı: ' + error.message, true);
+  start();
+};
+$('logout').onclick = async () => { await sb.auth.signOut(); show('login'); };
+
+async function loadBase() {
+  const c = await sb.from('categories').select('id,name').order('name');
+  const s = await sb.from('sources').select('id,name,is_trusted').order('name');
+  if (c.error || s.error) return toast('Okuma hatası: ' + (c.error || s.error).message, true);
+  allCats = c.data; srcs = s.data; srcName = {};
+  cats = CAT_ORDER.map(n => allCats.find(x => x.name === n)).filter(Boolean);
+  srcs.forEach(x => srcName[x.id] = x.name);
+  const f = $('fSrc'); f.length = 1;
+  [...new Set(srcs.map(x => x.name))].forEach(n => f.add(new Option(n, n)));
+  const fc = $('fCat'); fc.length = 1;
+  cats.forEach(c => fc.add(new Option(c.name, c.id)));
+  fc.add(new Option('★ Öne çıkarılanlar', '__featured'));
+  fc.add(new Option('✎ Elle eklediklerim', '__manual'));
+}
+
+async function load(append) {
+  if (mode === 'sources') return renderSources();
+  if (!append) { page = 0; rows = []; sel.clear(); $('list').innerHTML = '<div class="empty">Yükleniyor…</div>'; }
+  let q = sb.from('articles')
+    .select('id,title,excerpt,status,featured,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
+    .eq('status', mode).order('created_at', { ascending: false })
+    .range(page * PAGE, page * PAGE + PAGE - 1);
+  const t = $('fText').value.trim();
+  if (t) q = q.ilike('title', '%' + t + '%');
+  const cat = $('fCat').value;
+  if (cat === '__featured') q = q.eq('featured', true);
+  else if (cat === '__manual') q = q.eq('elle_eklendi', true);
+  else if (cat) q = q.eq('primary_category_id', cat);
+  const { data, error } = await q;
+  if (error) { if (!append) $('list').innerHTML = ''; return toast('Okuma hatası: ' + error.message, true); }
+  rows = rows.concat(data.map(r => {
+    const as = Array.isArray(r.article_sources) ? r.article_sources : (r.article_sources ? [r.article_sources] : []);
+    r.source = as.length ? (srcName[as[0].source_id] || '') : '';
+    r.url = as.length ? (as[0].source_url || '') : '';
+    return r;
+  }));
+  $('more').classList.toggle('hide', data.length < PAGE);
+  if (mode === 'review') {
+    const c = await sb.from('articles').select('id', { count: 'exact', head: true }).eq('status', 'review');
+    $('cnt').textContent = c.count != null ? '(' + c.count + ')' : '';
+  }
+  render();
+}
+
+async function toggleFull(r, box) {
+  if (!box.classList.contains('hide')) { box.classList.add('hide'); return; }
+  box.classList.remove('hide');
+  if (box.dataset.ok) return;
+  box.textContent = 'Yükleniyor…';
+  const { data, error } = await sb.from('articles').select('body').eq('id', r.id).maybeSingle();
+  if (error) { box.textContent = 'Metin okunamadı: ' + error.message; return; }
+  box.textContent = (data && data.body) ? data.body : '(Metin yok)';
+  if (/^https?:\/\//.test(r.url)) {
+    const a = document.createElement('a'); a.href = r.url; a.target = '_blank'; a.rel = 'noopener';
+    a.textContent = 'Kaynağında aç ↗';
+    box.append(document.createElement('br'), document.createElement('br'), a);
+  }
+  box.dataset.ok = '1';
+}
+
+function visible() { const s = $('fSrc').value; return s ? rows.filter(r => r.source === s) : rows; }
+
+function render() {
+  const L = LABEL[mode], list = $('list'), vis = visible();
+  $('bulkA').textContent = L.a; $('bulkA').classList.toggle('hide', !L.a);
+  $('bulkB').textContent = L.b; $('bulkB').classList.toggle('hide', !L.b);
+  list.innerHTML = '';
+  if (!vis.length) { list.innerHTML = '<div class="empty">Burada haber yok.</div>'; updSel(); return; }
+  vis.forEach(r => {
+    const el = document.createElement('div'); el.className = 'item';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = sel.has(r.id);
+    cb.onchange = () => { cb.checked ? sel.add(r.id) : sel.delete(r.id); updSel(); };
+    const body = document.createElement('div'); body.className = 'body';
+    const h = document.createElement('h3'); h.textContent = r.title || '(başlıksız)';
+    const m = document.createElement('div'); m.className = 'meta';
+    m.textContent = (r.source || (r.elle_eklendi ? 'Elle eklendi' : 'Kaynak yok')) + ' · ' + new Date(r.published_at || r.created_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    const ex = document.createElement('p'); ex.className = 'ex'; ex.textContent = r.excerpt || '';
+    const full = document.createElement('div'); full.className = 'full hide';
+    h.onclick = () => toggleFull(r, full);
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const sl = document.createElement('select');
+    cats.forEach(c => sl.add(new Option(c.name, c.id, false, c.id === r.primary_category_id)));
+    if (!cats.some(c => c.id === r.primary_category_id)) {
+      const old = allCats.find(c => c.id === r.primary_category_id);
+      sl.add(new Option(old ? old.name + ' (eski)' : '(bölüm yok)', r.primary_category_id || '', true, true), 0);
+    }
+    sl.onchange = () => setCat(r, sl.value);
+    acts.appendChild(sl);
+    if (L.a1) { const b = document.createElement('button'); b.className = 'btn'; b.textContent = L.a1; b.onclick = () => setStatus([r.id], L.as); acts.appendChild(b); }
+    if (L.b1) { const b = document.createElement('button'); b.className = 'btn red'; b.textContent = L.b1; b.onclick = () => setStatus([r.id], L.bs); acts.appendChild(b); }
+    if (mode === 'published') {
+      const f = document.createElement('button');
+      const paint = () => { f.className = 'btn' + (r.featured ? '' : ' ghost'); f.textContent = r.featured ? '★ Öne çıkarıldı' : '☆ Öne çıkar'; };
+      paint();
+      f.onclick = async () => {
+        const { data, error } = await sb.from('articles').update({ featured: !r.featured }).eq('id', r.id).select('id');
+        if (error || !data.length) return toast('Değişmedi' + (error ? ': ' + error.message : ' (yetki yok)'), true);
+        r.featured = !r.featured; paint();
+        toast(r.featured ? 'GÜNCEL şeridinde öne alındı' : 'Öne çıkarma kaldırıldı');
+      };
+      acts.appendChild(f);
+    }
+    /* Düzenle: başlık, özet ve metin yerinde değiştirilir. */
+    const ed = document.createElement('div'); ed.className = 'hide'; ed.style.margin = '0 0 10px';
+    const eb = document.createElement('button'); eb.className = 'btn ghost'; eb.textContent = 'Düzenle';
+    eb.onclick = async () => {
+      if (!ed.classList.contains('hide')) { ed.classList.add('hide'); return; }
+      ed.classList.remove('hide');
+      if (ed.dataset.ok) return;
+      ed.textContent = 'Yükleniyor…';
+      const { data, error } = await sb.from('articles').select('title,excerpt,body').eq('id', r.id).maybeSingle();
+      if (error || !data) { ed.textContent = 'Okunamadı' + (error ? ': ' + error.message : ''); return; }
+      ed.textContent = '';
+      const mk = (label, node) => { const l = document.createElement('label'); l.textContent = label; ed.append(l, node); return node; };
+      const it = mk('Başlık', document.createElement('input')); it.type = 'text'; it.value = data.title || '';
+      const ie = mk('Kısa özet', document.createElement('textarea')); ie.rows = 3; ie.value = data.excerpt || '';
+      const ib = mk('Metin', document.createElement('textarea')); ib.rows = 16; ib.value = data.body || '';
+      const ig = mk('Fotoğraf adresi (değiştirmek için yapıştırın; boş bırakılırsa fotoğraf değişmez)', document.createElement('input'));
+      ig.type = 'text'; ig.placeholder = "https://… (fotoğrafa sağ tıklayıp 'Resim Adresini Kopyala')";
+      const onizle = document.createElement('img'); onizle.style.cssText = 'display:none;max-width:220px;margin:6px 0;border-radius:6px';
+      ig.after(onizle);
+      ig.oninput = () => { const v = ig.value.trim(); onizle.style.display = v ? 'block' : 'none'; if (v) onizle.src = v; };
+      const row = document.createElement('p');
+      const save = document.createElement('button'); save.className = 'btn red'; save.textContent = 'Kaydet';
+      const cancel = document.createElement('button'); cancel.className = 'btn ghost'; cancel.textContent = 'Vazgeç'; cancel.style.marginLeft = '8px';
+      cancel.onclick = () => ed.classList.add('hide');
+      save.onclick = async () => {
+        const title = it.value.trim(), text = ib.value.trim();
+        if (!title || !text) return toast('Başlık ve metin boş olamaz', true);
+        save.disabled = true;
+        const res = await sb.from('articles').update({ title, excerpt: ie.value.trim() || null, body: text }).eq('id', r.id).select('id');
+        save.disabled = false;
+        if (res.error || !res.data.length) return toast('Kaydedilmedi' + (res.error ? ': ' + res.error.message : ' (yetki yok)'), true);
+        if (ig.value.trim()) {
+          save.disabled = true; save.textContent = 'Fotoğraf ekleniyor…';
+          try {
+            const cfg = getCfg(); const { data: ss } = await sb.auth.getSession();
+            const fr = await fetch(cfg.url + '/functions/v1/cevir', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss?.session?.access_token || cfg.key), 'apikey': cfg.key },
+              body: JSON.stringify({ kapak: r.id, gorsel: ig.value.trim(), baslik: title }),
+            });
+            const fj = await fr.json().catch(() => ({}));
+            if (!fr.ok || !fj.success) throw new Error(fj.error || ('HTTP ' + fr.status));
+            ig.value = ''; onizle.style.display = 'none';
+          } catch (e) {
+            save.disabled = false; save.textContent = 'Kaydet';
+            return toast('Metin kaydedildi, ama fotoğraf eklenemedi: ' + e.message, true);
+          }
+          save.disabled = false; save.textContent = 'Kaydet';
+        }
+        r.title = title; r.excerpt = ie.value.trim(); h.textContent = title; ex.textContent = r.excerpt;
+        full.dataset.ok = ''; full.classList.add('hide'); ed.classList.add('hide'); toast('Kaydedildi');
+      };
+      row.append(save, cancel); ed.append(row); ed.dataset.ok = '1';
+    };
+    acts.appendChild(eb);
+    if (r.elle_eklendi) {
+      const del = document.createElement('button'); del.className = 'btn red'; del.textContent = 'Kalıcı sil';
+      del.onclick = async () => {
+        if (!confirm('"' + (r.title || '') + '" kalıcı olarak silinsin mi? Geri alınamaz.')) return;
+        const { error } = await sb.rpc('delete_manual_article', { p_id: r.id });
+        if (error) return toast('Silinemedi: ' + error.message, true);
+        rows = rows.filter(x => x.id !== r.id); sel.delete(r.id); toast('Silindi'); render();
+      };
+      acts.appendChild(del);
+    }
+    body.append(h, m, ex, full, ed, acts); el.append(cb, body); list.appendChild(el);
+  });
+  updSel();
+}
+function updSel() { $('selInfo').textContent = sel.size ? sel.size + ' seçili' : visible().length + ' haber'; }
+
+async function setCat(r, id) {
+  const { data, error } = await sb.from('articles').update({ primary_category_id: id }).eq('id', r.id).select('id');
+  if (error || !data.length) return toast('Kategori değişmedi' + (error ? ': ' + error.message : ' (yetki yok)'), true);
+  r.primary_category_id = id; toast('Kategori değişti');
+}
+
+async function setStatus(ids, status) {
+  if (!ids.length) return toast('Önce haber seç', true);
+  const byId = {}; rows.forEach(r => byId[r.id] = r);
+  const groups = status === 'published'
+    ? [[ids.filter(i => byId[i].published_at), { status }], [ids.filter(i => !byId[i].published_at), { status, published_at: new Date().toISOString() }]]
+    : [[ids, { status }]];
+  let done = [];
+  for (const [g, patch] of groups) {
+    for (let i = 0; i < g.length; i += 50) {
+      const { data, error } = await sb.from('articles').update(patch).in('id', g.slice(i, i + 50)).select('id');
+      if (error) { toast('Hata: ' + error.message, true); break; }
+      done = done.concat(data.map(d => d.id));
+    }
+  }
+  const ok = new Set(done);
+  rows = rows.filter(r => !ok.has(r.id)); done.forEach(i => sel.delete(i));
+  if (done.length) toast(done.length + ' haber güncellendi'); else toast('Hiçbir haber değişmedi (yetki yok olabilir)', true);
+  if (mode === 'review' && done.length) { const n = parseInt(($('cnt').textContent.match(/\d+/) || [0])[0], 10) - done.length; $('cnt').textContent = '(' + Math.max(n, 0) + ')'; }
+  render();
+}
+
+function ago(t) {
+  const h = (Date.now() - new Date(t).getTime()) / 36e5;
+  if (h < 1) return 'az önce';
+  if (h < 48) return Math.round(h) + ' saat önce';
+  return Math.round(h / 24) + ' gün önce';
+}
+async function renderSources() {
+  const box = $('srcList'), hb = $('srcHealth'); box.innerHTML = '<div class="empty">Yükleniyor…</div>'; hb.innerHTML = '';
+  const H = {};
+  const hr = await sb.rpc('source_health');
+  if (!hr.error) (hr.data || []).forEach(x => H[x.source_id] = x);
+  box.innerHTML = '';
+  const stale = [];
+  srcs.forEach(s => {
+    const h = H[s.id];
+    const hours = h && h.last_at ? (Date.now() - new Date(h.last_at).getTime()) / 36e5 : null;
+    const level = hours == null ? '' : hours < 48 ? 'ok' : hours < 168 ? 'warn' : 'bad';
+    if (level === 'bad') stale.push(s.name + ' (' + ago(h.last_at) + ')');
+    const el = document.createElement('label'); el.className = 'src';
+    const txt = document.createElement('div');
+    const b = document.createElement('b');
+    const dot = document.createElement('span'); dot.className = 'dot ' + level;
+    b.append(dot, document.createTextNode(s.name));
+    const sm = document.createElement('small'); sm.textContent = s.is_trusted ? 'Otomatik yayınlanır' : 'Onay bekler';
+    const st = document.createElement('small');
+    st.textContent = hr.error ? '' : !h ? 'Henüz hiç haber gelmedi'
+      : 'Son haber: ' + ago(h.last_at) + ' · 24 saat: ' + h.n24 + ' · 7 gün: ' + h.n7 + (h.bekleyen > 0 ? ' · bekleyen: ' + h.bekleyen : '');
+    txt.append(b, sm, st);
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = s.is_trusted;
+    cb.onchange = async () => {
+      const { data, error } = await sb.from('sources').update({ is_trusted: cb.checked }).eq('id', s.id).select('id');
+      if (error || !data.length) { cb.checked = !cb.checked; return toast('Değişmedi' + (error ? ': ' + error.message : ' (yetki yok)'), true); }
+      s.is_trusted = cb.checked; sm.textContent = s.is_trusted ? 'Otomatik yayınlanır' : 'Onay bekler'; toast('Kaydedildi');
+    };
+    el.append(txt, cb); box.appendChild(el);
+  });
+  if (hr.error) { hb.innerHTML = ''; const d = document.createElement('div'); d.className = 'health'; d.textContent = 'Kaynak durumu okunamadı: ' + hr.error.message; hb.appendChild(d); }
+  else if (stale.length) { const d = document.createElement('div'); d.className = 'health'; d.textContent = '7 günden uzun süredir haber getirmeyen ' + stale.length + ' kaynak: ' + stale.join(', '); hb.appendChild(d); }
+}
+
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  mode = b.dataset.m;
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('listView').classList.toggle('hide', mode === 'sources' || mode === 'write' || mode === 'library');
+  $('libView').classList.toggle('hide', mode !== 'library');
+  $('autView').classList.toggle('hide', mode !== 'authors');
+  if (mode === 'authors') { ['listView','srcView','writeView','libView'].forEach(i => $(i).classList.add('hide')); loadAuthorAdmin(); return; }
+  if (mode === 'library') { $('srcView').classList.add('hide'); $('writeView').classList.add('hide'); loadLibrary(); return; }
+  $('srcView').classList.toggle('hide', mode !== 'sources');
+  $('writeView').classList.toggle('hide', mode !== 'write');
+  if (mode === 'write') { loadAuthors(); return; }
+  load();
+});
+$('reload').onclick = () => load();
+$('more').onclick = () => { page++; load(true); };
+$('fCat').onchange = () => load();
+$('fSrc').onchange = () => { sel.clear(); render(); };
+$('fText').onkeydown = e => { if (e.key === 'Enter') load(); };
+$('selAll').onclick = () => { const v = visible(); if (sel.size >= v.length) sel.clear(); else v.forEach(r => sel.add(r.id)); render(); };
+$('bulkA').onclick = () => setStatus([...sel], LABEL[mode].as);
+$('bulkB').onclick = () => setStatus([...sel], LABEL[mode].bs);
+
+/* Seçilen fotoğrafı en çok 1600 piksele küçültüp JPEG'e çevirir (telefon fotoğrafları çok büyük olur). */
+function shrinkImage(file, maxSide) {
+  return new Promise((resolve, reject) => {
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, (maxSide || 1600) / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error('Görsel işlenemedi')), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Bu dosya görsel olarak açılamadı')); };
+    img.src = url;
+  });
+}
+async function loadAuthors() {
+  const { data } = await sb.from('yazarlar').select('name').order('name');
+  const dl = $('wAuthors'); dl.innerHTML = '';
+  (data || []).forEach(a => { const o = document.createElement('option'); o.value = a.name; dl.appendChild(o); });
+}
+async function uploadImage(file, folder, maxSide) {
+  const blob = await shrinkImage(file, maxSide);
+  const path = folder + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.jpg';
+  const up = await sb.storage.from('news-images').upload(path, blob, { contentType: 'image/jpeg' });
+  if (up.error) throw new Error('Görsel yüklenemedi: ' + up.error.message);
+  return { path, url: sb.storage.from('news-images').getPublicUrl(path).data.publicUrl };
+}
+function autoExcerpt(body) {
+  const first = body.split(/\n/)[0].trim();
+  if (first.length <= 280) return first;
+  const cut = first.slice(0, 200); return cut.slice(0, cut.lastIndexOf(' ')) + '…';
+}
+$('wSend').onclick = async () => {
+  const author = $('wAuthor').value.trim(), title = $('wTitle').value.trim();
+  let body = $('wBody').value.trim();
+  const link = $('wUrl').value.trim(), day = $('wDate').value;
+  if (!author || !title || body.length < 50) return toast('Yazar, başlık ve metin gerekli (metin çok kısa olmasın)', true);
+  if (link && !/^https?:\/\//.test(link)) return toast('Bağlantı https:// ile başlamalı', true);
+  if (!confirm('"' + title + '" yazısı ' + author + ' adıyla hemen yayımlansın mı?')) return;
+  const excerpt = $('wExcerpt').value.trim() || autoExcerpt(body);
+  if (link) body += '\n\nİlk yayımlandığı yer: ' + link;
+  const btn = $('wSend'), info = $('wInfo'); btn.disabled = true;
+  try {
+    let img = null, photo = null;
+    if ($('wImg').files[0]) { info.textContent = 'Görsel yükleniyor…'; img = await uploadImage($('wImg').files[0], 'yazilar', 1600); }
+    if ($('wPhoto').files[0]) { info.textContent = 'Yazar fotoğrafı yükleniyor…'; photo = await uploadImage($('wPhoto').files[0], 'yazarlar', 600); }
+    info.textContent = 'Yazı kaydediliyor…';
+    const { data: newId, error } = await sb.rpc('create_own_article', {
+      p_author: author, p_title: title, p_excerpt: excerpt, p_body: body,
+      p_image_url: img ? img.url : null, p_image_path: img ? img.path : null,
+      p_published_at: day ? new Date(day + 'T12:00:00').toISOString() : null,
+      p_author_photo: photo ? photo.url : null
+    });
+    if (error) throw new Error(error.message);
+    if (newId) await sb.from('articles').update({ elle_eklendi: true }).eq('id', newId);
+    ['wTitle','wExcerpt','wBody','wImg','wPhoto','wDate','wUrl'].forEach(i => $(i).value = '');
+    info.textContent = ''; toast('Yazı yayımlandı. Düzenlemek ya da silmek için: Yayında sekmesi → kategori süzgecinde "Elle eklediklerim".'); loadAuthors();
+  } catch (e) { info.textContent = ''; toast(e.message, true); }
+  btn.disabled = false;
+};
+
+/* ---------- Sürükleyerek sıralama (Kütüphane ve Yazarlar ortak) ---------- */
+function makeGrip(box, el, rowClass, onDone) {
+  const grip = document.createElement('div'); grip.className = 'grip';
+  const up = document.createElement('button'); up.textContent = '▲'; up.title = 'Yukarı';
+  const hand = document.createElement('span'); hand.className = 'hand'; hand.textContent = '☰'; hand.title = 'Sürükle';
+  const dn = document.createElement('button'); dn.textContent = '▼'; dn.title = 'Aşağı';
+  up.onclick = () => { const p = el.previousElementSibling; if (p) { box.insertBefore(el, p); onDone(); } };
+  dn.onclick = () => { const n = el.nextElementSibling; if (n) { box.insertBefore(n, el); onDone(); } };
+  hand.onpointerdown = ev => {
+    ev.preventDefault(); hand.setPointerCapture(ev.pointerId); el.classList.add('drag');
+    let moved = false;
+    const move = e => {
+      const rows = [...box.querySelectorAll('.' + rowClass)].filter(x => x !== el);
+      const target = rows.find(x => { const b = x.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+      if (target) { if (el.nextElementSibling !== target) { box.insertBefore(el, target); moved = true; } }
+      else if (box.lastElementChild !== el) { box.appendChild(el); moved = true; }
+      if (e.clientY < 90) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
+    };
+    const end = () => {
+      hand.removeEventListener('pointermove', move); hand.removeEventListener('pointerup', end); hand.removeEventListener('pointercancel', end);
+      el.classList.remove('drag'); if (moved) onDone();
+    };
+    hand.addEventListener('pointermove', move); hand.addEventListener('pointerup', end); hand.addEventListener('pointercancel', end);
+  };
+  grip.append(up, hand, dn);
+  return grip;
+}
+
+/* ---------- Yazarlar: sıra, fotoğraf, tanıtım ---------- */
+let autRows = [], autTimer = null;
+function saveAuthorOrder() {
+  clearTimeout(autTimer);
+  autTimer = setTimeout(async () => {
+    const ids = [...$('autList').querySelectorAll('.aut-row')].map(x => x.dataset.id);
+    let failed = null;
+    for (let i = 0; i < ids.length; i++) {
+      const row = autRows.find(x => x.id === ids[i]);
+      if (row && row.sort_order === i + 1) continue;
+      const { data, error } = await sb.from('yazarlar').update({ sort_order: i + 1 }).eq('id', ids[i]).select('id');
+      if (error || !data.length) { failed = error ? error.message : 'yetki yok'; break; }
+      if (row) row.sort_order = i + 1;
+    }
+    toast(failed ? 'Sıra kaydedilemedi: ' + failed : 'Sıra kaydedildi', !!failed);
+  }, 500);
+}
+async function loadAuthorAdmin() {
+  const box = $('autList'); box.innerHTML = '<div class="empty">Yükleniyor…</div>';
+  const { data, error } = await sb.from('yazarlar').select('id,name,bio,photo_url,sort_order').order('sort_order', { ascending: true }).order('name');
+  if (error) { box.innerHTML = ''; return toast('Yazarlar okunamadı: ' + error.message, true); }
+  autRows = data; box.innerHTML = '';
+  if (!data.length) { box.innerHTML = '<div class="empty">Henüz yazar yok.</div>'; return; }
+  data.forEach(r => {
+    const el = document.createElement('div'); el.className = 'item lib-row aut-row'; el.dataset.id = r.id;
+    const grip = makeGrip(box, el, 'aut-row', saveAuthorOrder);
+    const body = document.createElement('div'); body.className = 'body';
+    const head = document.createElement('div'); head.style.cssText = 'display:flex;align-items:center;gap:12px;margin-bottom:8px';
+    const pic = document.createElement('div'); pic.style.cssText = 'width:52px;height:52px;border-radius:50%;background:#B5121B center/cover;flex:0 0 auto;color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center';
+    const paintPic = () => { if (r.photo_url) { pic.style.backgroundImage = 'url("' + r.photo_url + '")'; pic.textContent = ''; } else { pic.style.backgroundImage = ''; pic.textContent = r.name.split(/\s+/).map(x => x[0]).slice(0, 2).join('').toUpperCase(); } };
+    paintPic();
+    const h = document.createElement('h3'); h.textContent = r.name; h.style.cursor = 'default'; h.style.margin = '0';
+    head.append(pic, h);
+    const bio = document.createElement('textarea'); bio.rows = 2; bio.placeholder = 'Kısa tanıtım yazısı (isteğe bağlı)'; bio.value = r.bio || '';
+    const acts = document.createElement('div'); acts.className = 'acts'; acts.style.marginTop = '8px';
+    const saveBio = document.createElement('button'); saveBio.className = 'btn ghost'; saveBio.textContent = 'Tanıtımı kaydet';
+    saveBio.onclick = async () => {
+      const { data: d, error: e } = await sb.from('yazarlar').update({ bio: bio.value.trim() || null }).eq('id', r.id).select('id');
+      if (e || !d.length) return toast('Kaydedilmedi' + (e ? ': ' + e.message : ' (yetki yok)'), true);
+      r.bio = bio.value.trim(); toast('Kaydedildi');
+    };
+    const file = document.createElement('input'); file.type = 'file'; file.accept = 'image/*'; file.className = 'hide';
+    const ph = document.createElement('button'); ph.className = 'btn ghost'; ph.textContent = 'Fotoğrafı değiştir';
+    ph.onclick = () => file.click();
+    file.onchange = async () => {
+      if (!file.files[0]) return;
+      ph.disabled = true; ph.textContent = 'Yükleniyor…';
+      try {
+        const up = await uploadImage(file.files[0], 'yazarlar', 600);
+        const { data: d, error: e } = await sb.from('yazarlar').update({ photo_url: up.url }).eq('id', r.id).select('id');
+        if (e || !d.length) throw new Error(e ? e.message : 'yetki yok');
+        r.photo_url = up.url; paintPic(); toast('Fotoğraf değişti');
+      } catch (err) { toast('Fotoğraf yüklenemedi: ' + err.message, true); }
+      ph.disabled = false; ph.textContent = 'Fotoğrafı değiştir'; file.value = '';
+    };
+    const ren = document.createElement('button'); ren.className = 'btn ghost'; ren.textContent = 'Adı düzelt';
+    ren.onclick = async () => {
+      const name = (prompt('Yazarın adı:', r.name) || '').trim();
+      if (!name || name === r.name) return;
+      const { data: d, error: e } = await sb.from('yazarlar').update({ name }).eq('id', r.id).select('id');
+      if (e || !d.length) return toast('Değişmedi' + (e ? ': ' + e.message : ' (yetki yok)'), true);
+      r.name = name; h.textContent = name; paintPic(); toast('Ad değişti');
+    };
+    const del = document.createElement('button'); del.className = 'btn red'; del.textContent = 'Yazarı sil';
+    del.onclick = async () => {
+      const c = await sb.from('articles').select('id', { count: 'exact', head: true }).eq('yazar_id', r.id);
+      if (c.count > 0) return toast('Bu yazarın ' + c.count + ' yazısı var. Önce yazıları kaldırın ya da başka yazara taşıyın.', true);
+      if (!confirm('"' + r.name + '" yazarlar listesinden silinsin mi?')) return;
+      const { data: d, error: e } = await sb.from('yazarlar').delete().eq('id', r.id).select('id');
+      if (e || !d.length) return toast('Silinemedi' + (e ? ': ' + e.message : ' (yetki yok)'), true);
+      toast('Silindi'); loadAuthorAdmin();
+    };
+    acts.append(saveBio, ph, ren, del, file);
+    body.append(head, bio, acts); el.append(grip, body); box.appendChild(el);
+  });
+}
+
+/* ---------- Kütüphane: ortak PDF rafı ---------- */
+const LIB_BUCKET = 'kutuphane';
+function libSafeName(name) {
+  return name.toLowerCase().replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c')
+    .replace(/[^a-z0-9.]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'dosya';
+}
+async function loadLibrary() {
+  const box = $('libList'); box.innerHTML = '<div class="empty">Yükleniyor…</div>';
+  const { data, error } = await sb.from('kutuphane').select('*').order('sira', { ascending: true }).order('created_at', { ascending: false });
+  if (error) { box.innerHTML = ''; return toast('Kütüphane okunamadı: ' + error.message, true); }
+  box.innerHTML = '';
+  $('lCount').textContent = data.length ? data.length + ' belge. Sırayı değiştirmek için soldaki ☰ işaretinden tutup sürükleyin ya da okları kullanın.' : '';
+  libRows = data;
+  if (!data.length) { box.innerHTML = '<div class="empty">Kütüphanede henüz belge yok.</div>'; return; }
+  data.forEach(r => {
+    const el = document.createElement('div'); el.className = 'item lib-row'; el.dataset.id = r.id;
+    const grip = document.createElement('div'); grip.className = 'grip';
+    const up = document.createElement('button'); up.textContent = '▲'; up.title = 'Yukarı';
+    const hand = document.createElement('span'); hand.className = 'hand'; hand.textContent = '☰'; hand.title = 'Sürükle';
+    const dn = document.createElement('button'); dn.textContent = '▼'; dn.title = 'Aşağı';
+    up.onclick = () => { const p = el.previousElementSibling; if (p) { box.insertBefore(el, p); saveLibOrder(); } };
+    dn.onclick = () => { const n = el.nextElementSibling; if (n) { box.insertBefore(n, el); saveLibOrder(); } };
+    hand.onpointerdown = ev => {
+      ev.preventDefault(); hand.setPointerCapture(ev.pointerId); el.classList.add('drag');
+      let moved = false;
+      const move = e => {
+        const rows = [...box.querySelectorAll('.lib-row')].filter(x => x !== el);
+        const target = rows.find(x => { const b = x.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+        if (target) { if (el.nextElementSibling !== target) { box.insertBefore(el, target); moved = true; } }
+        else if (box.lastElementChild !== el) { box.appendChild(el); moved = true; }
+        if (e.clientY < 90) window.scrollBy(0, -14); else if (e.clientY > window.innerHeight - 90) window.scrollBy(0, 14);
+      };
+      const end = () => {
+        hand.removeEventListener('pointermove', move); hand.removeEventListener('pointerup', end); hand.removeEventListener('pointercancel', end);
+        el.classList.remove('drag'); if (moved) saveLibOrder();
+      };
+      hand.addEventListener('pointermove', move); hand.addEventListener('pointerup', end); hand.addEventListener('pointercancel', end);
+    };
+    grip.append(up, hand, dn);
+    const body = document.createElement('div'); body.className = 'body';
+    const h = document.createElement('h3'); h.textContent = r.title;
+    const m = document.createElement('div'); m.className = 'meta';
+    const paint = () => { m.textContent = [r.kind, r.author, r.yayinda ? 'Yayında' : 'Kaldırıldı (okurlar görmez)'].filter(Boolean).join(' · '); };
+    paint();
+    const ex = document.createElement('p'); ex.className = 'ex'; ex.textContent = r.description || '';
+    const acts = document.createElement('div'); acts.className = 'acts';
+    const open = document.createElement('a'); open.className = 'btn ghost'; open.textContent = 'PDF\'i aç'; open.href = r.pdf_url; open.target = '_blank'; open.rel = 'noopener'; open.style.textDecoration = 'none';
+    const tg = document.createElement('button');
+    const paintBtn = () => { tg.className = 'btn' + (r.yayinda ? '' : ' ghost'); tg.textContent = r.yayinda ? 'Yayından kaldır' : 'Yeniden yayına al'; };
+    paintBtn();
+    tg.onclick = async () => {
+      const { data: d, error: e } = await sb.from('kutuphane').update({ yayinda: !r.yayinda }).eq('id', r.id).select('id');
+      if (e || !d.length) return toast('Değişmedi' + (e ? ': ' + e.message : ' (yetki yok)'), true);
+      r.yayinda = !r.yayinda; paint(); paintBtn(); toast(r.yayinda ? 'Yayına alındı' : 'Yayından kaldırıldı');
+    };
+    const del = document.createElement('button'); del.className = 'btn red'; del.textContent = 'Kalıcı sil';
+    del.onclick = async () => {
+      if (!confirm('"' + r.title + '" kalıcı olarak silinsin mi? Dosya da silinir, geri alınamaz.')) return;
+      const paths = [r.pdf_path, r.cover_path].filter(Boolean);
+      if (paths.length) await sb.storage.from(LIB_BUCKET).remove(paths);
+      const { data: d, error: e } = await sb.from('kutuphane').delete().eq('id', r.id).select('id');
+      if (e || !d.length) return toast('Silinemedi' + (e ? ': ' + e.message : ' (yetki yok)'), true);
+      toast('Silindi'); loadLibrary();
+    };
+    acts.append(open, tg, del);
+    body.append(h, m, ex, acts); el.append(grip, body); box.appendChild(el);
+  });
+}
+let libRows = [], libSaveTimer = null;
+function saveLibOrder() {
+  clearTimeout(libSaveTimer);
+  libSaveTimer = setTimeout(async () => {
+    const ids = [...$('libList').querySelectorAll('.lib-row')].map(x => x.dataset.id);
+    let failed = null;
+    for (let i = 0; i < ids.length; i++) {
+      const row = libRows.find(x => x.id === ids[i]);
+      if (row && row.sira === i) continue;
+      const { error } = await sb.from('kutuphane').update({ sira: i }).eq('id', ids[i]);
+      if (error) { failed = error.message; break; }
+      if (row) row.sira = i;
+    }
+    toast(failed ? 'Sıra kaydedilemedi: ' + failed : 'Sıra kaydedildi', !!failed);
+  }, 500);
+}
+$('lSend').onclick = async () => {
+  const title = $('lTitle').value.trim(), pdf = $('lPdf').files[0];
+  if (!title || !pdf) return toast('Başlık ve PDF dosyası gerekli', true);
+  if (!/\.pdf$/i.test(pdf.name) && pdf.type !== 'application/pdf') return toast('Seçilen dosya PDF değil', true);
+  if (pdf.size > 50 * 1024 * 1024) return toast('PDF 50 MB sınırını aşıyor (' + Math.round(pdf.size / 1048576) + ' MB)', true);
+  const btn = $('lSend'), info = $('lInfo'); btn.disabled = true;
+  let pdfPath = null, coverPath = null;
+  try {
+    const stamp = Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+    info.textContent = 'PDF yükleniyor (' + Math.max(1, Math.round(pdf.size / 1048576)) + ' MB)…';
+    pdfPath = 'pdf/' + stamp + '-' + libSafeName(pdf.name.replace(/\.pdf$/i, '')) + '.pdf';
+    const up = await sb.storage.from(LIB_BUCKET).upload(pdfPath, pdf, { contentType: 'application/pdf' });
+    if (up.error) { pdfPath = null; throw new Error('PDF yüklenemedi: ' + up.error.message); }
+    let coverUrl = null;
+    if ($('lCover').files[0]) {
+      info.textContent = 'Kapak yükleniyor…';
+      const blob = await shrinkImage($('lCover').files[0], 900);
+      coverPath = 'kapak/' + stamp + '.jpg';
+      const cu = await sb.storage.from(LIB_BUCKET).upload(coverPath, blob, { contentType: 'image/jpeg' });
+      if (cu.error) { coverPath = null; throw new Error('Kapak yüklenemedi: ' + cu.error.message); }
+      coverUrl = sb.storage.from(LIB_BUCKET).getPublicUrl(coverPath).data.publicUrl;
+    }
+    info.textContent = 'Kaydediliyor…';
+    const { error } = await sb.from('kutuphane').insert({
+      title, author: $('lAuthor').value.trim() || null, kind: $('lKind').value,
+      description: $('lDesc').value.trim() || null,
+      pdf_url: sb.storage.from(LIB_BUCKET).getPublicUrl(pdfPath).data.publicUrl, pdf_path: pdfPath,
+      cover_url: coverUrl, cover_path: coverPath, size_bytes: pdf.size, yayinda: true,
+      sira: libRows.length ? Math.min(...libRows.map(x => x.sira || 0)) - 1 : 0
+    });
+    if (error) throw new Error(error.message);
+    ['lTitle','lAuthor','lDesc','lPdf','lCover'].forEach(i => $(i).value = '');
+    info.textContent = ''; toast('Kütüphaneye eklendi'); loadLibrary();
+  } catch (e) {
+    const junk = [pdfPath, coverPath].filter(Boolean);
+    if (junk.length) await sb.storage.from(LIB_BUCKET).remove(junk);
+    info.textContent = ''; toast(e.message, true);
+  }
+  btn.disabled = false;
+};
+
+start();
+</script>
+</body>
+</html>
