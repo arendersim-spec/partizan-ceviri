@@ -180,6 +180,13 @@ function toast(msg, err) {
   clearTimeout(tmr); tmr = setTimeout(() => t.className = 'hide', err ? 6000 : 2500);
 }
 function show(id) { ['setup','login','app'].forEach(s => $(s).classList.toggle('hide', s !== id)); $('logout').classList.toggle('hide', id !== 'app'); }
+async function dosyaVeri(dosya) {
+  const img = await new Promise((ok, hata) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => hata(new Error('Bu dosya açılamadı (JPG ya da PNG seçin)')); i.src = URL.createObjectURL(dosya); });
+  const olcek = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * olcek); c.height = Math.round(img.naturalHeight * olcek);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85);
+}
 function getCfg() { try { return JSON.parse(localStorage.getItem('ps_cfg') || 'null'); } catch (e) { return null; } }
 function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function modelAd(m) { return /sonnet/.test(m) ? 'sonnet' : /haiku/.test(m) ? 'haiku' : m; }
@@ -347,8 +354,19 @@ function ciz(gorunum) {
       <select data-yy><option value="">— yazar yok —</option>${(yz.data || []).map(y => `<option value="${y.id}">${esc(y.name)}</option>`).join('')}</select>
       <label>Fotoğraf adresi (isteğe bağlı; boş bırakırsanız özgün sayfanın fotoğrafı alınır, doluysa bu fotoğraf kullanılır)</label>
       <input type="text" data-yg placeholder="https://… (fotoğrafa sağ tıklayıp 'Resim adresini kopyala')">
+      <div class="note" style="margin-top:6px">ya da bilgisayarınızdan bir fotoğraf seçin:</div>
+      <input type="file" accept="image/*" data-yd style="margin:6px 0">
+      <img data-yo style="display:none;max-width:220px;margin:6px 0;border-radius:6px">
       <p style="margin:12px 0 0"><button class="btn red" data-ygonder>Yayınla</button> <span class="note" data-ydurum></span></p>`;
     panel.classList.remove('hide');
+    let dosyaGorsel = '';
+    const yg = panel.querySelector('[data-yg]'), yd = panel.querySelector('[data-yd]'), yo = panel.querySelector('[data-yo]');
+    yg.oninput = () => { dosyaGorsel = ''; yd.value = ''; const v = yg.value.trim(); yo.style.display = v ? 'block' : 'none'; if (v) yo.src = v; };
+    yd.onchange = async () => {
+      const f = yd.files && yd.files[0]; if (!f) return;
+      try { dosyaGorsel = await dosyaVeri(f); yg.value = ''; yo.src = dosyaGorsel; yo.style.display = 'block'; }
+      catch (e) { dosyaGorsel = ''; toast(e.message, true); }
+    };
     panel.querySelector('[data-ygonder]').onclick = async (ev) => {
       const btn = ev.currentTarget; btn.disabled = true;
       panel.querySelector('[data-ydurum]').textContent = 'Gönderiliyor…';
@@ -359,7 +377,7 @@ function ciz(gorunum) {
           headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.session.access_token, 'apikey': cfg.key },
           body: JSON.stringify({ yayinla: id, baslik: panel.querySelector('[data-yb]').value.trim(),
             kategori: panel.querySelector('[data-yk]').value, yazar_id: panel.querySelector('[data-yy]').value || null,
-            gorsel: panel.querySelector('[data-yg]').value.trim() || null }),
+            gorsel: dosyaGorsel || panel.querySelector('[data-yg]').value.trim() || null }),
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));

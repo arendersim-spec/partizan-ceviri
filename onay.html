@@ -181,6 +181,13 @@ function toast(msg, err) {
   clearTimeout(tmr); tmr = setTimeout(() => t.className = 'hide', err ? 6000 : 2500);
 }
 function show(id) { ['setup','login','app'].forEach(s => $(s).classList.toggle('hide', s !== id)); $('logout').classList.toggle('hide', id !== 'app'); }
+async function dosyaVeri(dosya) {
+  const img = await new Promise((ok, hata) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => hata(new Error('Bu dosya açılamadı (JPG ya da PNG seçin)')); i.src = URL.createObjectURL(dosya); });
+  const olcek = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * olcek); c.height = Math.round(img.naturalHeight * olcek);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL('image/jpeg', 0.85);
+}
 function getCfg() { try { return JSON.parse(localStorage.getItem('ps_cfg') || 'null'); } catch (e) { return null; } }
 
 async function start() {
@@ -325,11 +332,19 @@ function render() {
       const it = mk('Başlık', document.createElement('input')); it.type = 'text'; it.value = data.title || '';
       const ie = mk('Kısa özet', document.createElement('textarea')); ie.rows = 3; ie.value = data.excerpt || '';
       const ib = mk('Metin', document.createElement('textarea')); ib.rows = 16; ib.value = data.body || '';
-      const ig = mk('Fotoğraf adresi (değiştirmek için yapıştırın; boş bırakılırsa fotoğraf değişmez)', document.createElement('input'));
+      const ig = mk('Fotoğraf (değiştirmek için adres yapıştırın ya da dosya seçin; boş bırakılırsa fotoğraf değişmez)', document.createElement('input'));
       ig.type = 'text'; ig.placeholder = "https://… (fotoğrafa sağ tıklayıp 'Resim Adresini Kopyala')";
       const onizle = document.createElement('img'); onizle.style.cssText = 'display:none;max-width:220px;margin:6px 0;border-radius:6px';
-      ig.after(onizle);
-      ig.oninput = () => { const v = ig.value.trim(); onizle.style.display = v ? 'block' : 'none'; if (v) onizle.src = v; };
+      const dsec = document.createElement('input'); dsec.type = 'file'; dsec.accept = 'image/*'; dsec.style.margin = '6px 0';
+      const dyaz = document.createElement('div'); dyaz.className = 'note'; dyaz.textContent = 'ya da bilgisayarınızdan bir fotoğraf seçin:';
+      ig.after(dyaz, dsec, onizle);
+      let dosyaGorsel = '';
+      ig.oninput = () => { dosyaGorsel = ''; dsec.value = ''; const v = ig.value.trim(); onizle.style.display = v ? 'block' : 'none'; if (v) onizle.src = v; };
+      dsec.onchange = async () => {
+        const f = dsec.files && dsec.files[0]; if (!f) return;
+        try { dosyaGorsel = await dosyaVeri(f); ig.value = ''; onizle.src = dosyaGorsel; onizle.style.display = 'block'; }
+        catch (e) { dosyaGorsel = ''; toast(e.message, true); }
+      };
       const row = document.createElement('p');
       const save = document.createElement('button'); save.className = 'btn red'; save.textContent = 'Kaydet';
       const cancel = document.createElement('button'); cancel.className = 'btn ghost'; cancel.textContent = 'Vazgeç'; cancel.style.marginLeft = '8px';
@@ -341,18 +356,18 @@ function render() {
         const res = await sb.from('articles').update({ title, excerpt: ie.value.trim() || null, body: text }).eq('id', r.id).select('id');
         save.disabled = false;
         if (res.error || !res.data.length) return toast('Kaydedilmedi' + (res.error ? ': ' + res.error.message : ' (yetki yok)'), true);
-        if (ig.value.trim()) {
+        if (ig.value.trim() || dosyaGorsel) {
           save.disabled = true; save.textContent = 'Fotoğraf ekleniyor…';
           try {
             const cfg = getCfg(); const { data: ss } = await sb.auth.getSession();
             const fr = await fetch(cfg.url + '/functions/v1/cevir', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (ss?.session?.access_token || cfg.key), 'apikey': cfg.key },
-              body: JSON.stringify({ kapak: r.id, gorsel: ig.value.trim(), baslik: title }),
+              body: JSON.stringify({ kapak: r.id, gorsel: dosyaGorsel || ig.value.trim(), baslik: title }),
             });
             const fj = await fr.json().catch(() => ({}));
             if (!fr.ok || !fj.success) throw new Error(fj.error || ('HTTP ' + fr.status));
-            ig.value = ''; onizle.style.display = 'none';
+            ig.value = ''; dsec.value = ''; dosyaGorsel = ''; onizle.style.display = 'none';
           } catch (e) {
             save.disabled = false; save.textContent = 'Kaydet';
             return toast('Metin kaydedildi, ama fotoğraf eklenemedi: ' + e.message, true);
