@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partizan Sesi – Çeviri Masası</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--cream:#F4EFE5;--red:#B5121B;--black:#151515;--line:#ddd5c6;--mute:#777;--card:#fff;--hl:#fff3c4}
+*{box-sizing:border-box}
+body{margin:0;background:var(--cream);color:var(--black);font:16px/1.45 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+header{background:var(--black);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+header b{letter-spacing:1px;font-size:15px}
+header button{background:none;border:1px solid #666;color:#fff;border-radius:6px;padding:6px 10px;font-size:13px}
+main{max-width:1200px;margin:0 auto;padding:16px}
+.hide{display:none!important}
+.box{background:var(--card);border-radius:14px;padding:18px;margin-bottom:14px;max-width:560px}
+label{display:block;font-size:13px;font-weight:700;margin:12px 0 4px}
+input[type=text],input[type=email],input[type=password],textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font-size:16px;background:#fff;color:var(--black);font-family:inherit}
+textarea{line-height:1.55;resize:vertical}
+button{font:inherit;cursor:pointer}
+.btn{border:0;border-radius:8px;padding:10px 14px;font-weight:700;font-size:14px;background:var(--black);color:#fff}
+.btn.red{background:var(--red)}
+.btn.ghost{background:#fff;color:var(--black);border:1px solid var(--line)}
+.btn:disabled{opacity:.5}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:20px;padding:8px 14px;font-weight:700;font-size:14px;color:var(--black)}
+.tabs button.on{background:var(--red);border-color:var(--red);color:#fff}
+.item{background:var(--card);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer}
+.item h3{margin:0 0 4px;font-size:16px;line-height:1.3}
+.meta{font-size:12px;color:var(--mute);font-weight:700}
+.pill{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;padding:3px 8px;border-radius:20px;background:#eee;margin-right:6px}
+.pill.haiku{background:#e7f0ff}.pill.sonnet{background:#f3e8ff}.pill.yayinda{background:#e3f5e8}
+.note{font-size:13px;color:var(--mute)}
+.top{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.top h2{margin:0;font-size:20px;flex:1 1 300px;line-height:1.3}
+.seg{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}
+.seg button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px}
+.seg button.on{background:var(--black);color:#fff;border-color:var(--black)}
+.grid{display:grid;gap:12px;grid-template-columns:1fr}
+.col{background:var(--card);border-radius:14px;padding:16px;min-width:0}
+.col h4{margin:0 0 10px;font-size:12px;letter-spacing:1px;color:var(--red)}
+.col .t{font-weight:800;font-size:17px;margin-bottom:12px;line-height:1.3}
+.col p{margin:0 0 12px;font-family:Georgia,"Times New Roman",serif;font-size:16.5px;line-height:1.6}
+.col p.on{background:var(--hl);border-radius:4px}
+.col p.sorun{border-left:3px solid #e0a020;padding-left:8px}
+.notlar{margin:4px 0 14px;font-family:inherit}
+.nt{background:#fff8e6;border-radius:8px;padding:10px;margin-bottom:8px;font-size:14px;line-height:1.45}
+.nt b{color:var(--red)}
+.nt .al{color:#7a4b00;font-style:italic}
+.nt .on2{color:#1d5c2e}
+.nt button{margin-top:6px;padding:6px 10px;font-size:12px}
+.yay{background:#f4efe5;border-radius:10px;padding:12px;margin:8px 0 14px;font-family:inherit}
+.yay select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:15px;background:#fff}
+.kv{background:var(--card);border-radius:12px;padding:12px;margin-bottom:8px;display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:end}
+.kv .en{font-weight:800}
+.kv .de{color:var(--mute);font-size:13px}
+.kv input{padding:8px;font-size:15px}
+.kv .acts{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--black);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;max-width:90%;z-index:9}
+#toast.err{background:var(--red)}
+@media (min-width:900px){
+  .grid.iki{grid-template-columns:1fr 1fr}
+  .grid.uc{grid-template-columns:1fr 1fr 1fr}
+}
+</style>
+</head>
+<body>
+<header><b>PARTİZAN SESİ · ÇEVİRİ MASASI</b><button id="logout" class="hide">Çıkış</button></header>
+<main>
+
+<section id="setup" class="box hide">
+  <h2>İlk kurulum</h2>
+  <p class="note">Onay sayfasına girdiğiniz iki bilginin aynısı. Bir kez girilir ve bu cihazda saklanır.</p>
+  <label>Proje adresi (https://....supabase.co)</label>
+  <input type="text" id="cfgUrl" autocapitalize="off" autocorrect="off">
+  <label>Anahtar (eyJ... ya da sb_publishable_... ile başlar)</label>
+  <input type="text" id="cfgKey" autocapitalize="off" autocorrect="off">
+  <p><button class="btn red" id="cfgSave">Kaydet</button></p>
+</section>
+
+<section id="login" class="box hide">
+  <h2>Giriş</h2>
+  <label>E-posta</label><input type="email" id="email" autocapitalize="off">
+  <label>Şifre</label><input type="password" id="pass">
+  <p><button class="btn red" id="doLogin">Giriş yap</button>
+  <button class="btn ghost" id="resetCfg">Kurulumu sıfırla</button></p>
+</section>
+
+<section id="app" class="hide">
+  <div class="tabs" id="tabs">
+    <button data-t="yeni" class="on">Yeni çeviri</button>
+    <button data-t="liste">Çeviriler</button>
+    <button data-t="sozluk">Sözlük</button>
+  </div>
+
+  <div id="yeni">
+    <div class="box" style="max-width:none">
+      <b>Hangi dile?</b>
+      <div class="seg" id="yHedef">
+        <button data-h="tr" class="on">Türkçeye</button>
+        <button data-h="de">Almancaya</button>
+        <button data-h="en">İngilizceye</button>
+      </div>
+      <div class="seg" id="yKaynak">
+        <button data-k="adres" class="on">Adresten</button>
+        <button data-k="metin">Metin yapıştır</button>
+      </div>
+      <div id="kAdres">
+        <p class="note" style="margin:4px 0 8px">Çevirmek istediğiniz yazının adresini yapıştırın.</p>
+        <input type="text" id="yUrl" placeholder="https://…" autocapitalize="off" autocorrect="off">
+      </div>
+      <div id="kMetin" class="hide">
+        <label>Başlık</label><input type="text" id="yBaslik">
+        <label>Metin (paragraflar arasında boş satır)</label>
+        <textarea id="yMetin" rows="10"></textarea>
+      </div>
+      <div class="seg" id="yModel">
+        <button data-m="haiku" class="on">Haiku · hızlı, ucuz</button>
+        <button data-m="sonnet">Sonnet · kuram yazıları için</button>
+      </div>
+      <button class="btn red" id="yCevir">Çevir</button>
+      <span class="note" id="yDurum" style="margin-left:8px"></span>
+    </div>
+    <b style="display:block;margin:6px 0 4px">Aday yazılar</b>
+    <p class="note" style="margin:0 0 10px">Yabancı kaynaklardan gelen son yazılar. Başlık ve özet zaten Türkçe; tam metnini istediklerinizi çevirtin.</p>
+    <div id="adaylar"></div>
+  </div>
+
+  <div id="liste" class="hide"></div>
+
+  <div id="detay" class="hide">
+    <div class="top">
+      <button class="btn ghost" id="geri">← Liste</button>
+      <h2 id="dBaslik"></h2>
+    </div>
+    <div class="note" id="dMeta"></div>
+    <div class="seg" id="seg"></div>
+    <div class="grid" id="grid"></div>
+    <div id="duzen" class="hide">
+      <div class="col" style="margin-top:12px">
+        <h4 id="duzenBas">ÇEVİRİYİ DÜZELT</h4>
+        <label>Başlık</label><input type="text" id="eBaslik">
+        <label>Metin (paragraflar arasında boş satır bırakın)</label>
+        <textarea id="eMetin" rows="22"></textarea>
+        <p style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn red" id="kaydet">Kaydet</button>
+          <button class="btn ghost" id="vazgec">Vazgeç</button>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div id="sozluk" class="hide">
+    <div class="box" style="max-width:none">
+      <b>Yeni kavram</b>
+      <div class="kv" style="padding:0;margin-top:8px">
+        <div><label>İngilizce</label><input type="text" id="nEn" autocapitalize="off"></div>
+        <div><label>Almanca</label><input type="text" id="nDe" autocapitalize="off"></div>
+        <div><label>Türkçe</label><input type="text" id="nTr"></div>
+        <div><label>Not</label><input type="text" id="nNot"></div>
+        <div class="acts"><button class="btn red" id="ekle">Ekle</button></div>
+      </div>
+    </div>
+    <input type="text" id="ara" placeholder="Sözlükte ara…" style="margin-bottom:10px">
+    <div id="kavramlar"></div>
+  </div>
+</section>
+
+</main>
+<div id="toast" class="hide"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let sb = null, tmr = null, ceviriler = [], kavramlar = [], grup = null, secili = null;
+
+function toast(msg, err) {
+  const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : '';
+  clearTimeout(tmr); tmr = setTimeout(() => t.className = 'hide', err ? 6000 : 2500);
+}
+function show(id) { ['setup','login','app'].forEach(s => $(s).classList.toggle('hide', s !== id)); $('logout').classList.toggle('hide', id !== 'app'); }
+function getCfg() { try { return JSON.parse(localStorage.getItem('ps_cfg') || 'null'); } catch (e) { return null; } }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function modelAd(m) { return /sonnet/.test(m) ? 'sonnet' : /haiku/.test(m) ? 'haiku' : m; }
+function paras(t) { return String(t || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean); }
+function tarih(d) { try { return new Date(d).toLocaleString('tr-TR', {day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'}); } catch (e) { return ''; } }
+
+async function start() {
+  const cfg = getCfg();
+  if (!cfg) return show('setup');
+  try { sb = supabase.createClient(cfg.url, cfg.key); } catch (e) { toast('Kurulum bilgisi hatalı', true); return show('setup'); }
+  const { data } = await sb.auth.getSession();
+  if (!data || !data.session) return show('login');
+  show('app'); await yukleAdaylar();
+}
+$('cfgSave').onclick = () => {
+  const url = $('cfgUrl').value.trim().replace(/\/+$/, ''), key = $('cfgKey').value.trim();
+  if (!/^https:\/\/.+\.supabase\.co$/.test(url) || key.length < 20) return toast('Adres ya da anahtar eksik görünüyor', true);
+  try { localStorage.setItem('ps_cfg', JSON.stringify({ url, key })); } catch (e) {}
+  start();
+};
+$('resetCfg').onclick = () => { try { localStorage.removeItem('ps_cfg'); } catch (e) {} show('setup'); };
+$('doLogin').onclick = async () => {
+  $('doLogin').disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('pass').value });
+  $('doLogin').disabled = false;
+  if (error) return toast('Giriş olmadı: ' + error.message, true);
+  start();
+};
+$('logout').onclick = async () => { await sb.auth.signOut(); show('login'); };
+
+document.querySelectorAll('#tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#tabs button').forEach(x => x.classList.toggle('on', x === b));
+  const t = b.dataset.t;
+  $('liste').classList.toggle('hide', t !== 'liste');
+  $('yeni').classList.toggle('hide', t !== 'yeni');
+  $('detay').classList.add('hide');
+  $('sozluk').classList.toggle('hide', t !== 'sozluk');
+  if (t === 'sozluk') yukleSozluk(); else if (t === 'yeni') yukleAdaylar(); else yukleListe();
+});
+
+/* ---------- Çeviriler ---------- */
+async function yukleListe() {
+  $('liste').innerHTML = '<div class="empty">Yükleniyor…</div>';
+  const { data, error } = await sb.from('ceviriler')
+    .select('id,url,model,hedef,kaynak_baslik,baslik_tr,ozgun_metin,metin_tr,sozluk_kavram,sure_sn,durum,notlar,article_id,created_at')
+    .order('created_at', { ascending: false }).limit(200);
+  if (error) { $('liste').innerHTML = ''; return toast('Okuma hatası: ' + error.message, true); }
+  ceviriler = data || [];
+  const gruplar = new Map();
+  for (const c of ceviriler) { if (!gruplar.has(c.url)) gruplar.set(c.url, []); gruplar.get(c.url).push(c); }
+  if (!gruplar.size) { $('liste').innerHTML = '<div class="empty">Henüz çeviri yok.</div>'; return; }
+  $('liste').innerHTML = '';
+  for (const [url, g] of gruplar) {
+    const ilk = g.find(x => x.baslik_tr) || g[0];
+    const d = document.createElement('div'); d.className = 'item';
+    const modeller = [...new Set(g.map(x => modelAd(x.model)))].map(m => `<span class="pill ${m}">${esc(m.toUpperCase())}</span>`).join('');
+    const yay = g.some(x => x.durum === 'yayinda') ? '<span class="pill yayinda">YAYINDA</span>' : '';
+    const diller = [...new Set(g.map(x => x.hedef || 'tr'))].map(h => `<span class="pill">→ ${HEDEF_AD[h] || h}</span>`).join('');
+    let host = ''; try { host = new URL(url).host.replace(/^www\./, ''); } catch (e) { host = 'yapıştırılan metin'; }
+    d.innerHTML = `<h3>${esc(ilk.baslik_tr || ilk.kaynak_baslik || '(başlıksız)')}</h3>
+      <div class="note" style="margin-bottom:6px">${esc(ilk.kaynak_baslik || '')}</div>
+      <div class="meta">${diller}${modeller}${yay}${esc(host)} · ${tarih(ilk.created_at)}</div>`;
+    d.onclick = () => ac(url);
+    $('liste').appendChild(d);
+  }
+}
+
+function ac(url) {
+  grup = ceviriler.filter(c => c.url === url).sort((a, b) => a.id - b.id);
+  secili = null;
+  $('liste').classList.add('hide'); $('detay').classList.remove('hide'); $('duzen').classList.add('hide');
+  const ilk = grup.find(x => x.baslik_tr) || grup[0];
+  $('dBaslik').textContent = ilk.kaynak_baslik || '';
+  $('dMeta').innerHTML = /^https?:/.test(url) ? `<a href="${esc(url)}" target="_blank" rel="noopener" style="color:var(--red);font-weight:700">Özgün yazıyı aç ↗</a>` : '';
+  ciz('hepsi');
+  window.scrollTo(0, 0);
+}
+
+function ciz(gorunum) {
+  const seg = $('seg'); seg.innerHTML = '';
+  const secenekler = [['hepsi', 'Yan yana']].concat([['ozgun', 'Özgün']], grup.map(c => [String(c.id), modelAd(c.model).toUpperCase() + ' #' + c.id]));
+  for (const [k, ad] of secenekler) {
+    const b = document.createElement('button'); b.textContent = ad; b.classList.toggle('on', k === gorunum);
+    b.onclick = () => ciz(k); seg.appendChild(b);
+  }
+  const ozgun = { ad: 'ÖZGÜN', t: grup[0].kaynak_baslik, p: paras(grup[0].ozgun_metin) };
+  const ceviriKol = (c) => ({ ad: `→ ${HEDEF_AD[c.hedef || 'tr'] || ''} · ${modelAd(c.model).toUpperCase()} · ${c.sozluk_kavram ?? 0} kavram · ${c.sure_sn ?? '?'} sn`, t: c.baslik_tr, p: paras(c.metin_tr), c });
+  let kolonlar;
+  if (gorunum === 'hepsi') kolonlar = [ozgun, ...grup.map(ceviriKol)];
+  else if (gorunum === 'ozgun') kolonlar = [ozgun];
+  else kolonlar = [ceviriKol(grup.find(c => String(c.id) === gorunum))];
+  const g = $('grid'); g.innerHTML = '';
+  g.className = 'grid' + (kolonlar.length === 2 ? ' iki' : kolonlar.length >= 3 ? ' uc' : '');
+  kolonlar.forEach((k, ki) => {
+    const col = document.createElement('div'); col.className = 'col';
+    let h = `<h4>${esc(k.ad)}</h4><div class="t">${esc(k.t || '(başlık yok)')}</div>`;
+    const sorunlu = new Set((k.c && Array.isArray(k.c.notlar) ? k.c.notlar : []).map(n => Number(n.p) - 1));
+    if (k.c && Array.isArray(k.c.notlar)) {
+      h += '<div class="notlar">' + (k.c.notlar.length
+        ? `<div class="note" style="margin-bottom:6px"><b>İkinci okuma: ${k.c.notlar.length} not</b> · sarı çizgili paragraflar</div>` +
+          k.c.notlar.map((n, ni) => `<div class="nt"><b>¶${esc(n.p)} · ${esc(n.tur || '')}</b> — ${esc(n.sorun || '')}` +
+            (n.alinti ? `<div class="al">“${esc(n.alinti)}”</div>` : '') +
+            (n.oneri ? `<div class="on2">→ ${esc(n.oneri)}</div>` : '') +
+            (n.alinti && n.oneri ? `<button class="btn ghost" data-uygula="${k.c.id}:${ni}">Öneriyi uygula</button>` : '') +
+            `<button class="btn ghost" data-gec="${k.c.id}:${ni}" style="margin-left:6px">Geç</button></div>`).join('')
+        : '<div class="nt">İkinci okuma: önemli bir sorun bulunmadı.</div>') + '</div>';
+    }
+    h += k.p.map((p, i) => `<p data-i="${i}"${k.c && sorunlu.has(i) ? ' class="sorun"' : ''}>${esc(p)}</p>`).join('');
+    if (k.c) h += `<p style="font-family:inherit;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="btn ghost" data-duzelt="${k.c.id}">Bu çeviriyi düzelt</button>
+      <button class="btn ghost" data-gozden="${k.c.id}">İkinci okuma (Sonnet)</button>
+      ${(k.c.hedef || 'tr') === 'tr'
+        ? `<button class="btn red" data-yayin="${k.c.id}">${k.c.durum === 'yayinda' ? 'Yeniden yayınla' : 'Yayınla'}</button>`
+        : `<button class="btn" data-kopya="${k.c.id}">Metni kopyala</button>`}
+      <span class="note" data-gdurum="${k.c.id}"></span></p>
+      <div class="yay hide" data-ypanel="${k.c.id}"></div>`;
+    col.innerHTML = h; g.appendChild(col);
+  });
+  g.querySelectorAll('p[data-i]').forEach(p => p.onclick = () => {
+    const i = p.dataset.i, acik = p.classList.contains('on');
+    g.querySelectorAll('p[data-i]').forEach(x => x.classList.toggle('on', !acik && x.dataset.i === i));
+  });
+  g.querySelectorAll('[data-duzelt]').forEach(b => b.onclick = () => duzelt(Number(b.dataset.duzelt)));
+  const notKaydet = async (c) => {
+    const { error } = await sb.from('ceviriler').update({ metin_tr: c.metin_tr, notlar: c.notlar }).eq('id', c.id);
+    if (error) { toast('Kaydedilemedi: ' + error.message, true); return false; }
+    return true;
+  };
+  g.querySelectorAll('[data-uygula]').forEach(b => b.onclick = async () => {
+    const [id, ni] = b.dataset.uygula.split(':').map(Number);
+    const c = grup.find(x => x.id === id); const n = c && c.notlar[ni];
+    if (!n) return;
+    if (!String(c.metin_tr).includes(n.alinti)) return toast('Bu kısım metinde aynen bulunamadı; "Bu çeviriyi düzelt" ile elle düzeltin', true);
+    c.metin_tr = c.metin_tr.replace(n.alinti, n.oneri);
+    c.notlar = c.notlar.filter((_, i) => i !== ni);
+    if (await notKaydet(c)) { toast('Uygulandı'); ciz(String(id)); }
+  });
+  g.querySelectorAll('[data-gec]').forEach(b => b.onclick = async () => {
+    const [id, ni] = b.dataset.gec.split(':').map(Number);
+    const c = grup.find(x => x.id === id); if (!c) return;
+    c.notlar = c.notlar.filter((_, i) => i !== ni);
+    if (await notKaydet(c)) ciz(String(id));
+  });
+  g.querySelectorAll('[data-kopya]').forEach(b => b.onclick = async () => {
+    const c = grup.find(x => x.id === Number(b.dataset.kopya)); if (!c) return;
+    const t = (c.baslik_tr ? c.baslik_tr + '\n\n' : '') + c.metin_tr;
+    try { await navigator.clipboard.writeText(t); toast('Kopyalandı'); } catch (e) { toast('Kopyalanamadı; metni seçip kopyalayın', true); }
+  });
+  g.querySelectorAll('[data-yayin]').forEach(b => b.onclick = async () => {
+    const id = Number(b.dataset.yayin);
+    const c = grup.find(x => x.id === id);
+    const panel = g.querySelector(`[data-ypanel="${id}"]`);
+    if (!panel.classList.contains('hide')) { panel.classList.add('hide'); return; }
+    const [kc, yz] = await Promise.all([
+      sb.from('categories').select('id,name').order('name'),
+      sb.from('yazarlar').select('id,name').order('name'),
+    ]);
+    const SIRA = ['KURAM','EMEK','KADIN','KÜLTÜR – SANAT','EKONOMİ','EKOLOJİ','BİLİM – TEKNOLOJİ','DÜNYA','AVRUPA','KÜRDİSTAN – TÜRKİYE'];
+    const kats = (kc.data || []).filter(k => SIRA.includes(k.name)).sort((a, b) => SIRA.indexOf(a.name) - SIRA.indexOf(b.name));
+    panel.innerHTML = `<b>Uygulamada yayınla</b>
+      ${c.article_id ? '<div class="note" style="margin:4px 0">Bu çeviri, uygulamadaki aynı yazının kısa özetinin yerine geçecek.</div>' : ''}
+      <label>Başlık</label><input type="text" data-yb value="${esc(c.baslik_tr || '')}">
+      <label>Bölüm</label><select data-yk>${kats.map(k => `<option value="${k.id}">${esc(k.name)}</option>`).join('')}</select>
+      <label>Yazar (isteğe bağlı; seçilirse yazı Yazarlar bölümüne girer)</label>
+      <select data-yy><option value="">— yazar yok —</option>${(yz.data || []).map(y => `<option value="${y.id}">${esc(y.name)}</option>`).join('')}</select>
+      <p style="margin:12px 0 0"><button class="btn red" data-ygonder>Yayınla</button> <span class="note" data-ydurum></span></p>`;
+    panel.classList.remove('hide');
+    panel.querySelector('[data-ygonder]').onclick = async (ev) => {
+      const btn = ev.currentTarget; btn.disabled = true;
+      panel.querySelector('[data-ydurum]').textContent = 'Gönderiliyor…';
+      const cfg = getCfg(); const { data } = await sb.auth.getSession();
+      try {
+        const r = await fetch(cfg.url + '/functions/v1/cevir', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.session.access_token, 'apikey': cfg.key },
+          body: JSON.stringify({ yayinla: id, baslik: panel.querySelector('[data-yb]').value.trim(),
+            kategori: panel.querySelector('[data-yk]').value, yazar_id: panel.querySelector('[data-yy]').value || null }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));
+        c.durum = 'yayinda'; c.article_id = j.article_id; c.baslik_tr = panel.querySelector('[data-yb]').value.trim();
+        toast('Yayınlandı. Uygulamada görünüyor.');
+        ciz(String(id));
+      } catch (e) {
+        toast('Yayınlanamadı: ' + e.message, true);
+        btn.disabled = false; panel.querySelector('[data-ydurum]').textContent = '';
+      }
+    };
+  });
+  g.querySelectorAll('[data-gozden]').forEach(b => b.onclick = async () => {
+    const id = Number(b.dataset.gozden);
+    const durum = g.querySelector(`[data-gdurum="${id}"]`);
+    const cfg = getCfg();
+    const { data } = await sb.auth.getSession();
+    if (!data?.session) return show('login');
+    b.disabled = true;
+    const t0 = Date.now();
+    const say = setInterval(() => durum.textContent = 'Okunuyor… ' + Math.round((Date.now() - t0) / 1000) + ' sn', 1000);
+    try {
+      const r = await fetch(cfg.url + '/functions/v1/cevir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.session.access_token, 'apikey': cfg.key },
+        body: JSON.stringify({ gozden: id }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));
+      const c = grup.find(x => x.id === id); if (c) c.notlar = j.notlar;
+      toast(j.not_sayisi ? j.not_sayisi + ' not bulundu' : 'Önemli bir sorun bulunmadı');
+      ciz(String(id));
+    } catch (e) {
+      toast('İkinci okuma olmadı: ' + e.message, true);
+    } finally { clearInterval(say); b.disabled = false; if (durum) durum.textContent = ''; }
+  });
+}
+
+function duzelt(id) {
+  secili = grup.find(c => c.id === id);
+  $('duzenBas').textContent = 'ÇEVİRİYİ DÜZELT · ' + modelAd(secili.model).toUpperCase() + ' #' + id;
+  $('eBaslik').value = secili.baslik_tr || '';
+  $('eMetin').value = secili.metin_tr || '';
+  $('duzen').classList.remove('hide');
+  $('duzen').scrollIntoView({ behavior: 'smooth' });
+}
+$('vazgec').onclick = () => $('duzen').classList.add('hide');
+$('kaydet').onclick = async () => {
+  if (!secili) return;
+  $('kaydet').disabled = true;
+  const yeni = { baslik_tr: $('eBaslik').value.trim(), metin_tr: $('eMetin').value.replace(/\r/g, '').trim() };
+  const { error } = await sb.from('ceviriler').update(yeni).eq('id', secili.id);
+  $('kaydet').disabled = false;
+  if (error) return toast('Kaydedilemedi: ' + error.message, true);
+  Object.assign(secili, yeni);
+  $('duzen').classList.add('hide');
+  toast('Kaydedildi');
+  ciz(String(secili.id));
+};
+$('geri').onclick = () => { $('detay').classList.add('hide'); $('liste').classList.remove('hide'); yukleListe(); };
+
+/* ---------- Yeni çeviri ---------- */
+let yModel = 'haiku', yHedef = 'tr', yKaynak = 'adres', cevrilenler = new Set();
+const HEDEF_AD = { tr: 'TÜRKÇE', de: 'ALMANCA', en: 'İNGİLİZCE' };
+document.querySelectorAll('#yHedef button').forEach(b => b.onclick = () => {
+  yHedef = b.dataset.h;
+  document.querySelectorAll('#yHedef button').forEach(x => x.classList.toggle('on', x === b));
+});
+document.querySelectorAll('#yKaynak button').forEach(b => b.onclick = () => {
+  yKaynak = b.dataset.k;
+  document.querySelectorAll('#yKaynak button').forEach(x => x.classList.toggle('on', x === b));
+  $('kAdres').classList.toggle('hide', yKaynak !== 'adres');
+  $('kMetin').classList.toggle('hide', yKaynak !== 'metin');
+});
+document.querySelectorAll('#yModel button').forEach(b => b.onclick = () => {
+  yModel = b.dataset.m;
+  document.querySelectorAll('#yModel button').forEach(x => x.classList.toggle('on', x === b));
+});
+
+async function cevirt(govde, durumEl, dugmeler) {
+  const cfg = getCfg();
+  const { data } = await sb.auth.getSession();
+  if (!data?.session) { show('login'); return false; }
+  dugmeler.forEach(d => d.disabled = true);
+  const t0 = Date.now();
+  const say = setInterval(() => durumEl.textContent = 'Çevriliyor… ' + Math.round((Date.now() - t0) / 1000) + ' sn', 1000);
+  try {
+    const r = await fetch(cfg.url + '/functions/v1/cevir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + data.session.access_token, 'apikey': cfg.key },
+      body: JSON.stringify(govde),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));
+    durumEl.textContent = 'Hazır: ' + (j.baslik_tr || '');
+    toast('Çeviri hazır. "Çeviriler" sekmesinde.');
+    return true;
+  } catch (e) {
+    durumEl.textContent = '';
+    toast('Çevrilemedi: ' + e.message, true);
+    return false;
+  } finally {
+    clearInterval(say);
+    dugmeler.forEach(d => d.disabled = false);
+  }
+}
+
+$('yCevir').onclick = async () => {
+  if (yKaynak === 'metin') {
+    const metin = $('yMetin').value.trim();
+    if (metin.length < 50) return toast('Çevrilecek metni yapıştırın', true);
+    if (await cevirt({ metin, baslik: $('yBaslik').value.trim(), model: yModel, hedef: yHedef }, $('yDurum'), [$('yCevir')])) {
+      $('yMetin').value = ''; $('yBaslik').value = '';
+    }
+    return;
+  }
+  const url = $('yUrl').value.trim();
+  if (!/^https?:\/\//.test(url)) return toast('Geçerli bir adres yapıştırın', true);
+  if (await cevirt({ url, model: yModel, hedef: yHedef }, $('yDurum'), [$('yCevir')])) $('yUrl').value = '';
+};
+
+async function yukleAdaylar() {
+  $('adaylar').innerHTML = '<div class="empty">Yükleniyor…</div>';
+  const [a, c] = await Promise.all([
+    sb.from('article_sources')
+      .select('article_id, source_url, created_at, sources!inner(name, translate), articles!inner(title, excerpt, published_at)')
+      .eq('sources.translate', true).order('created_at', { ascending: false }).limit(60),
+    sb.from('ceviriler').select('url, article_id').limit(1000),
+  ]);
+  if (a.error) { $('adaylar').innerHTML = ''; return toast('Okuma hatası: ' + a.error.message, true); }
+  cevrilenler = new Set((c.data || []).flatMap(x => [x.url, x.article_id]).filter(Boolean));
+  const rows = a.data || [];
+  if (!rows.length) { $('adaylar').innerHTML = '<div class="empty">Yabancı kaynaklardan yazı yok.</div>'; return; }
+  $('adaylar').innerHTML = '';
+  for (const r of rows) {
+    const art = r.articles || {}, src = r.sources || {};
+    const yapildi = cevrilenler.has(r.source_url) || cevrilenler.has(r.article_id);
+    const d = document.createElement('div'); d.className = 'item'; d.style.cursor = 'default';
+    d.innerHTML = `<h3>${esc(art.title)}</h3>
+      <div class="note" style="margin-bottom:6px">${esc(String(art.excerpt || '').slice(0, 220))}</div>
+      <div class="meta" style="margin-bottom:8px">${esc(src.name)} · ${tarih(art.published_at)} · <a href="${esc(r.source_url)}" target="_blank" rel="noopener" style="color:var(--red)">özgün ↗</a></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        ${yapildi ? '<span class="pill yayinda">ÇEVRİLDİ</span>' : ''}
+        <button class="btn ghost" data-m="haiku">Çevir · Haiku</button>
+        <button class="btn ghost" data-m="sonnet">Çevir · Sonnet</button>
+        <span class="note" data-durum></span>
+      </div>`;
+    const dugmeler = [...d.querySelectorAll('button[data-m]')];
+    dugmeler.forEach(b => b.onclick = async () => {
+      const ok = await cevirt({ url: r.source_url, model: b.dataset.m, article_id: r.article_id }, d.querySelector('[data-durum]'), dugmeler);
+      if (ok && !d.querySelector('.pill')) d.querySelector('div:last-child').insertAdjacentHTML('afterbegin', '<span class="pill yayinda">ÇEVRİLDİ</span>');
+    });
+    $('adaylar').appendChild(d);
+  }
+}
+
+/* ---------- Sözlük ---------- */
+async function yukleSozluk() {
+  $('kavramlar').innerHTML = '<div class="empty">Yükleniyor…</div>';
+  const { data, error } = await sb.from('kavramlar').select('id,en,de,tr,aciklama').order('en');
+  if (error) { $('kavramlar').innerHTML = ''; return toast('Okuma hatası: ' + error.message, true); }
+  kavramlar = data || []; cizSozluk();
+}
+function cizSozluk() {
+  const q = $('ara').value.trim().toLocaleLowerCase('tr');
+  const liste = kavramlar.filter(k => !q || [k.en, k.de, k.tr, k.aciklama].some(v => String(v || '').toLocaleLowerCase('tr').includes(q)));
+  $('kavramlar').innerHTML = liste.length ? '' : '<div class="empty">Sonuç yok.</div>';
+  for (const k of liste) {
+    const d = document.createElement('div'); d.className = 'kv';
+    d.innerHTML = `<div><div class="en">${esc(k.en)}</div><div class="de">${esc(k.de || '')}</div></div>
+      <div><label style="margin-top:0">Türkçe</label><input type="text" data-f="tr" value="${esc(k.tr)}"></div>
+      <div style="grid-column:1/-1"><input type="text" data-f="aciklama" placeholder="Not" value="${esc(k.aciklama || '')}"></div>
+      <div class="acts"><button class="btn ghost" data-sil>Sil</button><button class="btn" data-kaydet>Kaydet</button></div>`;
+    d.querySelector('[data-kaydet]').onclick = async () => {
+      const tr = d.querySelector('[data-f=tr]').value.trim(), aciklama = d.querySelector('[data-f=aciklama]').value.trim() || null;
+      if (!tr) return toast('Türkçe karşılık boş olamaz', true);
+      const { error } = await sb.from('kavramlar').update({ tr, aciklama }).eq('id', k.id);
+      if (error) return toast('Kaydedilemedi: ' + error.message, true);
+      Object.assign(k, { tr, aciklama }); toast('Kaydedildi');
+    };
+    d.querySelector('[data-sil]').onclick = async () => {
+      if (d.dataset.emin !== '1') { d.dataset.emin = '1'; d.querySelector('[data-sil]').textContent = 'Emin misiniz? Tekrar basın'; return; }
+      const { error } = await sb.from('kavramlar').delete().eq('id', k.id);
+      if (error) return toast('Silinemedi: ' + error.message, true);
+      kavramlar = kavramlar.filter(x => x.id !== k.id); cizSozluk(); toast('Silindi');
+    };
+    $('kavramlar').appendChild(d);
+  }
+}
+$('ara').oninput = cizSozluk;
+$('ekle').onclick = async () => {
+  const en = $('nEn').value.trim(), tr = $('nTr').value.trim();
+  if (!en || !tr) return toast('İngilizce ve Türkçe alanları gerekli', true);
+  const { error } = await sb.from('kavramlar').insert({ en, de: $('nDe').value.trim() || null, tr, aciklama: $('nNot').value.trim() || null });
+  if (error) return toast('Eklenemedi: ' + error.message, true);
+  ['nEn','nDe','nTr','nNot'].forEach(i => $(i).value = '');
+  toast('Eklendi'); yukleSozluk();
+};
+
+start();
+</script>
+</body>
+</html>
