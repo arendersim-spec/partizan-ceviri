@@ -2,7 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#151515">
+
 <title>Partizan Sesi – Onay</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
@@ -56,10 +61,15 @@ button{font:inherit;cursor:pointer}
 .empty{text-align:center;color:var(--mute);padding:40px 10px}
 #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--black);color:#fff;padding:12px 18px;border-radius:10px;font-size:14px;max-width:90%;z-index:9}
 #toast.err{background:var(--red)}
+header nav{display:flex;gap:4px;align-items:center}
+header nav a{color:#bbb;text-decoration:none;font-weight:800;font-size:13px;letter-spacing:.6px;padding:6px 10px;border-radius:6px}
+header nav a.on{background:var(--red);color:#fff}
+header{padding-top:max(14px,env(safe-area-inset-top))}
+@media (max-width:600px){header b{display:none} main{padding:12px}}
 </style>
 </head>
 <body>
-<header><b>PARTİZAN SESİ · ONAY</b><button id="logout" class="hide">Çıkış</button></header>
+<header><b>PARTİZAN SESİ · ONAY</b><nav><a href="onay.html" class="on">ONAY</a><a href="./">ÇEVİRİ</a></nav><button id="logout" class="hide">Çıkış</button></header>
 <main>
 
 <section id="setup" class="box hide">

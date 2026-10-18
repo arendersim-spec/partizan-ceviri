@@ -2,7 +2,12 @@
 <html lang="tr">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#151515">
+
 <title>Partizan Sesi – Çeviri Masası</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
@@ -64,10 +69,15 @@ button{font:inherit;cursor:pointer}
   .grid.iki{grid-template-columns:1fr 1fr}
   .grid.uc{grid-template-columns:1fr 1fr 1fr}
 }
+header nav{display:flex;gap:4px;align-items:center}
+header nav a{color:#bbb;text-decoration:none;font-weight:800;font-size:13px;letter-spacing:.6px;padding:6px 10px;border-radius:6px}
+header nav a.on{background:var(--red);color:#fff}
+header{padding-top:max(14px,env(safe-area-inset-top))}
+@media (max-width:600px){header b{display:none} main{padding:12px}}
 </style>
 </head>
 <body>
-<header><b>PARTİZAN SESİ · ÇEVİRİ MASASI</b><button id="logout" class="hide">Çıkış</button></header>
+<header><b>PARTİZAN SESİ · ÇEVİRİ MASASI</b><nav><a href="onay.html">ONAY</a><a href="./" class="on">ÇEVİRİ</a></nav><button id="logout" class="hide">Çıkış</button></header>
 <main>
 
 <section id="setup" class="box hide">
@@ -483,7 +493,13 @@ async function cevirt(govde, durumEl, dugmeler) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok || !j.success) throw new Error(j.error || ('HTTP ' + r.status));
     durumEl.textContent = 'Hazır: ' + (j.baslik_tr || '');
-    toast('Çeviri hazır. "Çeviriler" sekmesinde.');
+    toast('Çeviri hazır.');
+    /* Çeviri bitince doğrudan o çevirinin sayfasını aç */
+    try {
+      const tb = document.querySelector('#tabs button[data-t="liste"]');
+      if (tb) { tb.click(); await yukleListe(); }
+      if (j.url && ceviriler.some(c => c.url === j.url)) ac(j.url);
+    } catch (e) {}
     return true;
   } catch (e) {
     durumEl.textContent = '';
