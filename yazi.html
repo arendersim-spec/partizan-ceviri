@@ -51,7 +51,7 @@ const m = document.getElementById('m');
   const { data: a, error } = await sb.from('articles')
     .select('id,title,excerpt,body,published_at,status,dil,yazar_id,media:media!articles_cover_media_fk(public_url),categories!articles_primary_category_id_fkey(name),article_sources(source_url,sources(name))')
     .eq('id', id).eq('status', 'published').maybeSingle();
-  if (error || !a) { m.innerHTML = '<div class="uyari">Yazı bulunamadı ya da yayından kaldırılmış.</div>'; return; }
+  if (error || !a) { m.innerHTML = '<div class="uyari">Yazı bulunamadı ya da yayından kaldırılmış.<br><small>' + esc((error && error.message) || ('kimlik: ' + id)) + '</small></div>'; return; }
   const dil = a.dil || 'tr'; document.documentElement.lang = dil;
   let yazar = '';
   if (a.yazar_id) { const { data: y } = await sb.from('yazarlar').select('name').eq('id', a.yazar_id).maybeSingle(); yazar = y?.name || ''; }
