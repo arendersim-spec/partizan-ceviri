@@ -149,12 +149,22 @@ header{padding-top:max(14px,env(safe-area-inset-top))}
   </div>
   <div id="writeView" class="box hide">
     <h2 style="margin-top:0">Yazı ekle</h2>
-    <p class="note">Kendi yazınızı ya da seçtiğiniz bir yazarın yazısını ekleyin. Yazı, uygulamanın Yazarlar bölümünde o yazarın adıyla hemen yayımlanır.</p>
+    <p class="note" id="wNote">Kendi yazınızı ya da seçtiğiniz bir yazarın yazısını ekleyin. Yazı, uygulamanın Yazarlar bölümünde o yazarın adıyla hemen yayımlanır.</p>
+    <label>Tür</label>
+    <select id="wKind"><option value="yazi">Yazar yazısı</option><option value="haber">Haber</option></select>
+    <div id="wHaberAlan" class="hide">
+    <label>Bölüm</label>
+    <select id="wCat"></select>
+    <label>Haberi hazırlayan / kaynak (isteğe bağlı, ör. "Partizan Sesi Haber Merkezi")</label>
+    <input type="text" id="wCredit" autocomplete="off">
+    </div>
+    <div id="wYazarAlan">
     <label>Yazar (listeden seçin ya da yeni bir ad yazın)</label>
     <input type="text" id="wAuthor" list="wAuthors" placeholder="Ad Soyad" autocomplete="off">
     <datalist id="wAuthors"></datalist>
     <label>Yazar fotoğrafı (isteğe bağlı; yeni yazar eklerken ya da fotoğrafı değiştirmek için)</label>
     <input type="file" id="wPhoto" accept="image/*">
+    </div>
     <label>Başlık</label>
     <input type="text" id="wTitle">
     <label>Kısa özet (isteğe bağlı, 1-2 cümle)</label>
@@ -527,7 +537,49 @@ function autoExcerpt(body) {
   if (first.length <= 280) return first;
   const cut = first.slice(0, 200); return cut.slice(0, cut.lastIndexOf(' ')) + '…';
 }
+/* ---------- Haber yayımlama ---------- */
+(function () {
+  const sec = $('wCat');
+  CAT_ORDER.filter(c => c !== 'YAZARLAR').forEach(c => { const o = document.createElement('option'); o.value = c; o.textContent = c; sec.appendChild(o); });
+  const notYazi = $('wNote').textContent;
+  $('wKind').onchange = () => {
+    const haber = $('wKind').value === 'haber';
+    $('wHaberAlan').classList.toggle('hide', !haber);
+    $('wYazarAlan').classList.toggle('hide', haber);
+    $('wNote').textContent = haber
+      ? 'Haber, seçtiğiniz bölümde ve Gündem akışında hemen yayımlanır; uygulamada ve sitede görünür.'
+      : notYazi;
+  };
+})();
+async function haberGonder() {
+  const title = $('wTitle').value.trim(), cat = $('wCat').value, credit = $('wCredit').value.trim();
+  let body = $('wBody').value.trim();
+  const link = $('wUrl').value.trim(), day = $('wDate').value;
+  if (!title || body.length < 50) return toast('Başlık ve metin gerekli (metin çok kısa olmasın)', true);
+  if (link && !/^https?:\/\//.test(link)) return toast('Bağlantı https:// ile başlamalı', true);
+  if (!confirm('"' + title + '" haberi ' + cat + ' bölümünde hemen yayımlansın mı?')) return;
+  const excerpt = $('wExcerpt').value.trim() || autoExcerpt(body);
+  if (link) body += '\n\nKaynak: ' + link;
+  const btn = $('wSend'), info = $('wInfo'); btn.disabled = true;
+  try {
+    let img = null;
+    if ($('wImg').files[0]) { info.textContent = 'Görsel yükleniyor…'; img = await uploadImage($('wImg').files[0], 'yazilar', 1600); }
+    info.textContent = 'Haber kaydediliyor…';
+    const { data: newId, error } = await sb.rpc('create_own_news', {
+      p_category: cat, p_title: title, p_excerpt: excerpt, p_body: body,
+      p_image_url: img ? img.url : null, p_image_path: img ? img.path : null,
+      p_published_at: day ? new Date(day + 'T12:00:00').toISOString() : null,
+      p_credit: credit || null
+    });
+    if (error) throw new Error(error.message);
+    if (newId) await sb.from('articles').update({ elle_eklendi: true }).eq('id', newId);
+    ['wTitle','wExcerpt','wBody','wImg','wDate','wUrl'].forEach(i => $(i).value = '');
+    info.textContent = ''; toast('Haber yayımlandı. Düzenlemek ya da silmek için: Yayında sekmesi → kategori süzgecinde "Elle eklediklerim".');
+  } catch (e) { info.textContent = ''; toast(e.message, true); }
+  btn.disabled = false;
+}
 $('wSend').onclick = async () => {
+  if ($('wKind').value === 'haber') return haberGonder();
   const author = $('wAuthor').value.trim(), title = $('wTitle').value.trim();
   let body = $('wBody').value.trim();
   const link = $('wUrl').value.trim(), day = $('wDate').value;
