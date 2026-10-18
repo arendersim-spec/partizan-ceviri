@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Partizan Sesi</title>
+<meta property="og:site_name" content="Partizan Sesi">
+<meta property="og:title" content="Partizan Sesi">
+<meta property="og:description" content="Sol ve sosyalist basından değerlendirme yazıları ve gündem.">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{--zemin:#F4EFE5;--yazi:#151515;--kirmizi:#B5121B;--soluk:#6b6b6b;--cizgi:#00000018}
+@media (prefers-color-scheme:dark){:root{--zemin:#141311;--yazi:#eee8dc;--kirmizi:#e0414a;--soluk:#a8a29a;--cizgi:#ffffff20}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--zemin);color:var(--yazi);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+header{border-bottom:3px solid var(--kirmizi);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;max-width:760px;margin:0 auto}
+header a{color:var(--yazi);text-decoration:none;font-weight:900;letter-spacing:1px;font-size:18px}
+header a span{font-weight:400;letter-spacing:4px;font-size:14px;margin-left:4px}
+main{max-width:720px;margin:0 auto;padding:0 18px 48px}
+.kapak{width:100%;max-height:420px;object-fit:cover;display:block;margin:0 auto}
+.bolum{color:var(--kirmizi);font-weight:800;font-size:12px;letter-spacing:1.3px;margin:22px 0 10px}
+h1{font-family:"Source Serif 4",Georgia,serif;font-size:30px;line-height:1.15;margin:0 0 14px}
+.meta{color:var(--soluk);font-size:13px;font-weight:600;padding-bottom:16px;border-bottom:1px solid var(--cizgi)}
+.giris{border-left:3px solid var(--kirmizi);padding-left:14px;margin:20px 0 0;font-size:17px;line-height:1.5;font-weight:500}
+.metin{font-family:"Source Serif 4",Georgia,serif;font-size:19px;line-height:1.65;margin-top:22px}
+.metin p{margin:0 0 1.05em}
+.kaynak{margin-top:30px;font-size:14px;color:var(--soluk)}
+.kaynak a{color:var(--kirmizi)}
+.uyari{text-align:center;color:var(--soluk);padding:80px 10px}
+footer{max-width:720px;margin:0 auto;padding:20px 18px 40px;border-top:1px solid var(--cizgi);color:var(--soluk);font-size:13px}
+</style>
+</head>
+<body>
+<header><a href="#">PARTİZAN<span>SESİ</span></a></header>
+<main id="m"><div class="uyari">Yükleniyor…</div></main>
+<footer>Partizan Sesi · sol ve sosyalist basından okuma · <a style="color:inherit" href="gizlilik.html">Gizlilik</a></footer>
+<script>
+const URL_ = 'https://jdpotpmmyrebuucarpkg.supabase.co', KEY = 'sb_publishable_4hZ8aN3orv4z2Rkp8dhjCQ_7k-Ntubx';
+const sb = supabase.createClient(URL_, KEY);
+const AY = {tr:['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+  de:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
+  en:['January','February','March','April','May','June','July','August','September','October','November','December']};
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const sade = s => String(s ?? '').toLowerCase().replace(/[^a-z0-9À-ɏ]/g, '');
+const m = document.getElementById('m');
+(async () => {
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) { m.innerHTML = '<div class="uyari">Yazı bulunamadı.</div>'; return; }
+  const { data: a, error } = await sb.from('articles')
+    .select('id,title,excerpt,body,published_at,status,dil,yazar_id,media:media!articles_cover_media_fk(public_url),categories!articles_primary_category_id_fkey(name),article_sources(source_url,sources(name))')
+    .eq('id', id).eq('status', 'published').maybeSingle();
+  if (error || !a) { m.innerHTML = '<div class="uyari">Yazı bulunamadı ya da yayından kaldırılmış.</div>'; return; }
+  const dil = a.dil || 'tr'; document.documentElement.lang = dil;
+  let yazar = '';
+  if (a.yazar_id) { const { data: y } = await sb.from('yazarlar').select('name').eq('id', a.yazar_id).maybeSingle(); yazar = y?.name || ''; }
+  const src = (a.article_sources || [])[0] || {};
+  const kaynakAd = src.sources?.name || 'Partizan Sesi';
+  const d = new Date(a.published_at);
+  const tarih = isNaN(d) ? '' : `${d.getDate()}${dil==='de'?'.':''} ${AY[dil][d.getMonth()]} ${d.getFullYear()}`;
+  let govde = String(a.body || '').trim(), ozet = String(a.excerpt || '').trim();
+  if (ozet && govde.startsWith(ozet) && govde.slice(ozet.length).trim()) govde = govde.slice(ozet.length).trim();
+  const so = sade(ozet), sm = sade(govde), st = sade(a.title);
+  const ozetGoster = so.length >= 40 && !sm.startsWith(so.slice(0, Math.min(so.length - 5, 160))) && !st.startsWith(so);
+  const bolum = a.categories?.name && a.categories.name !== 'YAZARLAR' ? a.categories.name : '';
+  document.title = a.title + ' – Partizan Sesi';
+  const paras = govde.split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+    .map(p => '<p>' + esc(p).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" rel="noopener">$1</a>') + '</p>').join('');
+  m.innerHTML = `
+    ${a.media?.public_url ? `<img class="kapak" src="${esc(a.media.public_url)}" alt="">` : ''}
+    ${bolum ? `<div class="bolum">${esc(bolum)}</div>` : '<div style="height:22px"></div>'}
+    <h1>${esc(a.title)}</h1>
+    <div class="meta">${esc(yazar || kaynakAd)}${tarih ? ' · ' + tarih : ''}</div>
+    ${ozetGoster ? `<div class="giris">${esc(ozet)}</div>` : ''}
+    <div class="metin">${paras}</div>
+    ${src.source_url ? `<div class="kaynak">${dil==='de'?'Quelle':dil==='en'?'Source':'Kaynak'}: <a href="${esc(src.source_url)}" rel="noopener">${esc(kaynakAd)} ↗</a></div>` : ''}`;
+})();
+</script>
+</body>
+</html>
