@@ -38,7 +38,7 @@ footer{max-width:720px;margin:0 auto;padding:20px 18px 40px;border-top:1px solid
 <footer>Partizan Sesi · sol ve sosyalist basından okuma · <a style="color:inherit" href="gizlilik.html">Gizlilik</a></footer>
 <script>
 const URL_ = 'https://jdpotpmmyrebuucarpkg.supabase.co', KEY = 'sb_publishable_4hZ8aN3orv4z2Rkp8dhjCQ_7k-Ntubx';
-const sb = supabase.createClient(URL_, KEY);
+const sb = supabase.createClient(URL_, KEY, { auth: { persistSession: false, autoRefreshToken: false, storageKey: 'ps-okur' } });
 const AY = {tr:['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
   de:['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'],
   en:['January','February','March','April','May','June','July','August','September','October','November','December']};
