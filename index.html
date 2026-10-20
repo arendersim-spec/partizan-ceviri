@@ -529,8 +529,8 @@ async function yukleAdaylar() {
   $('adaylar').innerHTML = '<div class="empty">Yükleniyor…</div>';
   const [a, c] = await Promise.all([
     sb.from('article_sources')
-      .select('article_id, source_url, created_at, sources!inner(name, translate), articles!inner(title, excerpt, published_at)')
-      .eq('sources.translate', true).order('created_at', { ascending: false }).limit(60),
+      .select('article_id, source_url, created_at, sources!inner(name, translate, dil), articles!inner(title, excerpt, published_at)')
+      .or('translate.eq.true,dil.neq.tr', { referencedTable: 'sources', foreignTable: 'sources' }).order('created_at', { ascending: false }).limit(60),
     sb.from('ceviriler').select('url, article_id').limit(1000),
   ]);
   if (a.error) { $('adaylar').innerHTML = ''; return toast('Okuma hatası: ' + a.error.message, true); }
