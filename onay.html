@@ -255,7 +255,7 @@ async function load(append) {
   if (mode === 'sources') return renderSources();
   if (!append) { page = 0; rows = []; sel.clear(); $('list').innerHTML = '<div class="empty">Yükleniyor…</div>'; }
   let q = sb.from('articles')
-    .select('id,title,excerpt,status,featured,sabit,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
+    .select('id,title,excerpt,status,featured,sabit,kalici,makale,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
     .eq('status', mode).order('created_at', { ascending: false })
     .range(page * PAGE, page * PAGE + PAGE - 1);
   const t = $('fText').value.trim();
@@ -348,6 +348,17 @@ function render() {
         toast(r.sabit ? 'Bölümün Derlenenler sekmesinde en üste sabitlendi' : 'Sabitleme kaldırıldı');
       };
       acts.appendChild(sb2);
+      const dk = document.createElement('button');
+      const dboya = () => { dk.className = 'btn ghost'; dk.textContent = r.kalici ? '− Derlenenlerden çıkar' : '+ Derlenenlere al'; };
+      dboya();
+      dk.onclick = async () => {
+        const yeni = r.kalici ? { kalici: false, makale: false, sabit: false } : { kalici: true };
+        const { data, error } = await sb.from('articles').update(yeni).eq('id', r.id).select('id');
+        if (error || !data.length) return toast('Değişmedi' + (error ? ': ' + error.message : ' (yetki yok)'), true);
+        Object.assign(r, yeni); dboya(); boya();
+        toast(r.kalici ? 'Derlenenler sekmesine alındı' : 'Derlenenlerden çıkarıldı, Haber akışında görünecek');
+      };
+      acts.appendChild(dk);
     }
     /* Düzenle: başlık, özet ve metin yerinde değiştirilir. */
     const ed = document.createElement('div'); ed.className = 'hide'; ed.style.margin = '0 0 10px';
