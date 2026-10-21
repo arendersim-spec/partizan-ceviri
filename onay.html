@@ -248,13 +248,14 @@ async function loadBase() {
   cats.forEach(c => fc.add(new Option(c.name, c.id)));
   fc.add(new Option('★ Öne çıkarılanlar', '__featured'));
   fc.add(new Option('✎ Elle eklediklerim', '__manual'));
+  fc.add(new Option('📌 Bölüme sabitlenenler', '__sabit'));
 }
 
 async function load(append) {
   if (mode === 'sources') return renderSources();
   if (!append) { page = 0; rows = []; sel.clear(); $('list').innerHTML = '<div class="empty">Yükleniyor…</div>'; }
   let q = sb.from('articles')
-    .select('id,title,excerpt,status,featured,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
+    .select('id,title,excerpt,status,featured,sabit,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
     .eq('status', mode).order('created_at', { ascending: false })
     .range(page * PAGE, page * PAGE + PAGE - 1);
   const t = $('fText').value.trim();
@@ -262,6 +263,7 @@ async function load(append) {
   const cat = $('fCat').value;
   if (cat === '__featured') q = q.eq('featured', true);
   else if (cat === '__manual') q = q.eq('elle_eklendi', true);
+  else if (cat === '__sabit') q = q.eq('sabit', true);
   else if (cat) q = q.eq('primary_category_id', cat);
   const { data, error } = await q;
   if (error) { if (!append) $('list').innerHTML = ''; return toast('Okuma hatası: ' + error.message, true); }
@@ -336,6 +338,16 @@ function render() {
         toast(r.featured ? 'GÜNCEL şeridinde öne alındı' : 'Öne çıkarma kaldırıldı');
       };
       acts.appendChild(f);
+      const sb2 = document.createElement('button');
+      const boya = () => { sb2.className = 'btn' + (r.sabit ? '' : ' ghost'); sb2.textContent = r.sabit ? '📌 Sabitlendi' : '📌 Bölüme sabitle'; };
+      boya();
+      sb2.onclick = async () => {
+        const { data, error } = await sb.from('articles').update({ sabit: !r.sabit }).eq('id', r.id).select('id');
+        if (error || !data.length) return toast('Değişmedi' + (error ? ': ' + error.message : ' (yetki yok)'), true);
+        r.sabit = !r.sabit; boya();
+        toast(r.sabit ? 'Bölümün Derlenenler sekmesinde en üste sabitlendi' : 'Sabitleme kaldırıldı');
+      };
+      acts.appendChild(sb2);
     }
     /* Düzenle: başlık, özet ve metin yerinde değiştirilir. */
     const ed = document.createElement('div'); ed.className = 'hide'; ed.style.margin = '0 0 10px';
