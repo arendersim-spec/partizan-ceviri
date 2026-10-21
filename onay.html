@@ -153,6 +153,13 @@ header{padding-top:max(14px,env(safe-area-inset-top))}
     <label>Tür</label>
     <select id="wKind"><option value="yazi">Yazar yazısı</option><option value="haber">Haber</option></select>
     <div id="wHaberAlan" class="hide">
+    <label>Haberin bağlantısı (yapıştırıp "Getir"e basın, bilgiler forma dolar)</label>
+    <div style="display:flex;gap:8px;align-items:center">
+      <input type="text" id="wLink" placeholder="https://..." autocapitalize="off" autocorrect="off" style="flex:1">
+      <button class="btn" id="wGetir" type="button">Getir</button>
+    </div>
+    <span class="note" id="wGetirDurum"></span>
+    <img id="wOnizleme" alt="" style="display:none;max-width:100%;max-height:220px;margin-top:8px;border-radius:8px">
     <label>Bölüm</label>
     <select id="wCat"></select>
     <label>Haberi hazırlayan / kaynak (isteğe bağlı, ör. "Partizan Sesi Haber Merkezi")</label>
@@ -574,6 +581,28 @@ function autoExcerpt(body) {
       : notYazi;
   };
 })();
+let haberGorsel = '', haberKaynak = '';
+$('wGetir').onclick = async () => {
+  const link = $('wLink').value.trim();
+  if (!/^https?:\/\//.test(link)) return toast('Bağlantı https:// ile başlamalı', true);
+  const btn = $('wGetir'), d = $('wGetirDurum'); btn.disabled = true; d.textContent = 'Sayfa okunuyor…';
+  try {
+    const { data, error } = await sb.functions.invoke('haber-oku', { body: { url: link } });
+    if (error) throw new Error(error.message);
+    if (!data || !data.success) throw new Error((data && data.error) || 'Okunamadı');
+    $('wTitle').value = data.baslik || '';
+    $('wExcerpt').value = data.ozet || '';
+    $('wBody').value = data.metin || '';
+    $('wUrl').value = link;
+    haberGorsel = data.gorsel || ''; haberKaynak = data.kaynak || '';
+    const im = $('wOnizleme');
+    if (haberGorsel) { im.src = haberGorsel; im.style.display = 'block'; } else { im.style.display = 'none'; }
+    if (haberKaynak && !$('wCredit').value.trim()) $('wCredit').value = '';
+    d.textContent = (haberKaynak ? 'Kaynak: ' + haberKaynak + ' · ' : 'Kaynak listemizde yok · ') +
+      ((data.metin || '').length < 300 ? 'Metin kısa geldi, kontrol edin.' : 'Kontrol edip bölümü seçin, sonra Yayımla.');
+  } catch (e) { d.textContent = ''; toast('Getirilemedi: ' + e.message, true); }
+  btn.disabled = false;
+};
 async function haberGonder() {
   const title = $('wTitle').value.trim(), cat = $('wCat').value, credit = $('wCredit').value.trim();
   let body = $('wBody').value.trim();
@@ -582,7 +611,7 @@ async function haberGonder() {
   if (link && !/^https?:\/\//.test(link)) return toast('Bağlantı https:// ile başlamalı', true);
   if (!confirm('"' + title + '" haberi ' + cat + ' bölümünde hemen yayımlansın mı?')) return;
   const excerpt = $('wExcerpt').value.trim() || autoExcerpt(body);
-  if (link) body += '\n\nKaynak: ' + link;
+  if (link && !haberKaynak) body += '\n\nKaynak: ' + link;
   const btn = $('wSend'), info = $('wInfo'); btn.disabled = true;
   try {
     let img = null;
@@ -590,13 +619,15 @@ async function haberGonder() {
     info.textContent = 'Haber kaydediliyor…';
     const { data: newId, error } = await sb.rpc('create_own_news', {
       p_category: cat, p_title: title, p_excerpt: excerpt, p_body: body,
-      p_image_url: img ? img.url : null, p_image_path: img ? img.path : null,
+      p_image_url: img ? img.url : (haberGorsel || null), p_image_path: img ? img.path : null,
+      p_kaynak_url: link || null,
       p_published_at: day ? new Date(day + 'T12:00:00').toISOString() : null,
       p_credit: credit || null
     });
     if (error) throw new Error(error.message);
     if (newId) await sb.from('articles').update({ elle_eklendi: true }).eq('id', newId);
-    ['wTitle','wExcerpt','wBody','wImg','wDate','wUrl'].forEach(i => $(i).value = '');
+    ['wTitle','wExcerpt','wBody','wImg','wDate','wUrl','wLink'].forEach(i => $(i).value = '');
+    haberGorsel = ''; haberKaynak = ''; $('wOnizleme').style.display = 'none'; $('wGetirDurum').textContent = '';
     info.textContent = ''; toast('Haber yayımlandı. Düzenlemek ya da silmek için: Yayında sekmesi → kategori süzgecinde "Elle eklediklerim".');
   } catch (e) { info.textContent = ''; toast(e.message, true); }
   btn.disabled = false;
