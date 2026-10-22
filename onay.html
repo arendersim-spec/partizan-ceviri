@@ -262,11 +262,16 @@ async function load(append) {
   if (mode === 'sources') return renderSources();
   if (!append) { page = 0; rows = []; sel.clear(); $('list').innerHTML = '<div class="empty">Yükleniyor…</div>'; }
   let q = sb.from('articles')
-    .select('id,title,excerpt,status,featured,sabit,kalici,makale,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
+    .select($('fSrc').value ? 'id,title,excerpt,status,featured,sabit,kalici,makale,elle_eklendi,published_at,created_at,primary_category_id,article_sources!inner(source_id,source_url)' : 'id,title,excerpt,status,featured,sabit,kalici,makale,elle_eklendi,published_at,created_at,primary_category_id,article_sources(source_id,source_url)')
     .eq('status', mode).order('created_at', { ascending: false })
     .range(page * PAGE, page * PAGE + PAGE - 1);
   const t = $('fText').value.trim();
   if (t) q = q.ilike('title', '%' + t + '%');
+  const srcSec = $('fSrc').value;
+  if (srcSec) {
+    const srcIds = srcs.filter(x => x.name === srcSec).map(x => x.id);
+    q = q.in('article_sources.source_id', srcIds);
+  }
   const cat = $('fCat').value;
   if (cat === '__featured') q = q.eq('featured', true);
   else if (cat === '__manual') q = q.eq('elle_eklendi', true);
@@ -529,7 +534,7 @@ document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
 $('reload').onclick = () => load();
 $('more').onclick = () => { page++; load(true); };
 $('fCat').onchange = () => load();
-$('fSrc').onchange = () => { sel.clear(); render(); };
+$('fSrc').onchange = () => { sel.clear(); load(); };
 $('fText').onkeydown = e => { if (e.key === 'Enter') load(); };
 $('selAll').onclick = () => { const v = visible(); if (sel.size >= v.length) sel.clear(); else v.forEach(r => sel.add(r.id)); render(); };
 $('bulkA').onclick = () => setStatus([...sel], LABEL[mode].as);
