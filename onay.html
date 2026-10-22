@@ -152,14 +152,16 @@ header{padding-top:max(14px,env(safe-area-inset-top))}
     <p class="note" id="wNote">Kendi yazınızı ya da seçtiğiniz bir yazarın yazısını ekleyin. Yazı, uygulamanın Yazarlar bölümünde o yazarın adıyla hemen yayımlanır.</p>
     <label>Tür</label>
     <select id="wKind"><option value="yazi">Yazar yazısı</option><option value="haber">Haber</option></select>
-    <div id="wHaberAlan" class="hide">
-    <label>Haberin bağlantısı (yapıştırıp "Getir"e basın, bilgiler forma dolar)</label>
+    <div id="wLinkAlan">
+    <label>Yazının bağlantısı (yapıştırıp "Getir"e basın, bilgiler forma dolar)</label>
     <div style="display:flex;gap:8px;align-items:center">
       <input type="text" id="wLink" placeholder="https://..." autocapitalize="off" autocorrect="off" style="flex:1">
       <button class="btn" id="wGetir" type="button">Getir</button>
     </div>
     <span class="note" id="wGetirDurum"></span>
     <img id="wOnizleme" alt="" style="display:none;max-width:100%;max-height:220px;margin-top:8px;border-radius:8px">
+    </div>
+    <div id="wHaberAlan" class="hide">
     <label>Bölüm</label>
     <select id="wCat"></select>
     <label>Haberi hazırlayan / kaynak (isteğe bağlı, ör. "Partizan Sesi Haber Merkezi")</label>
@@ -655,13 +657,14 @@ $('wSend').onclick = async () => {
     info.textContent = 'Yazı kaydediliyor…';
     const { data: newId, error } = await sb.rpc('create_own_article', {
       p_author: author, p_title: title, p_excerpt: excerpt, p_body: body,
-      p_image_url: img ? img.url : null, p_image_path: img ? img.path : null,
+      p_image_url: img ? img.url : (haberGorsel || null), p_image_path: img ? img.path : null,
       p_published_at: day ? new Date(day + 'T12:00:00').toISOString() : null,
       p_author_photo: photo ? photo.url : null
     });
     if (error) throw new Error(error.message);
     if (newId) await sb.from('articles').update({ elle_eklendi: true }).eq('id', newId);
-    ['wTitle','wExcerpt','wBody','wImg','wPhoto','wDate','wUrl'].forEach(i => $(i).value = '');
+    ['wTitle','wExcerpt','wBody','wImg','wPhoto','wDate','wUrl','wLink'].forEach(i => $(i).value = '');
+    haberGorsel = ''; haberKaynak = ''; $('wOnizleme').style.display = 'none'; $('wGetirDurum').textContent = '';
     info.textContent = ''; toast('Yazı yayımlandı. Düzenlemek ya da silmek için: Yayında sekmesi → kategori süzgecinde "Elle eklediklerim".'); loadAuthors();
   } catch (e) { info.textContent = ''; toast(e.message, true); }
   btn.disabled = false;
